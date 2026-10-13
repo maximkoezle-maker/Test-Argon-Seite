@@ -1,0 +1,2199 @@
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Praxis Dr. med. Carola Maiwald | Allgemeinmedizin & Naturheilverfahren Dresden</title>
+    <meta name="description" content="Ihre Hausarztpraxis in Dresden-Löbtau / Cotta. Fachärztin für Allgemeinmedizin, Naturheilverfahren und Psychosomatische Grundversorgung an der Kesselsdorfer Str. 2.">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Leaflet CSS & JS (Interaktive Karte) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        serif: ['"Fraunces"', 'serif'],
+                    },
+                    colors: {
+                        med: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                            950: '#042f2e',
+                        },
+                        sage: {
+                            50: '#f6f7f6',
+                            100: '#e3e7e3',
+                            200: '#c7d0c7',
+                            500: '#5c735c',
+                            700: '#3d4d3d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --base-font-size: 16px;
+        }
+        html {
+            font-size: var(--base-font-size);
+            transition: font-size 0.2s ease;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .dark ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #0d9488;
+            border-radius: 4px;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+        }
+        .step-transition {
+            animation: fadeSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes fadeSlide {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pulse-dot {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            animation: pulseGreen 2s infinite;
+        }
+        @keyframes pulseGreen {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        #praxisMap {
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-med-600 selection:text-white transition-colors duration-300">
+
+    <!-- TOP EMERGENCY & LIVE STATUS BAR -->
+    <div class="bg-slate-900 text-slate-200 text-xs sm:text-sm py-2.5 px-4 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <!-- Dynamic Live Opening Indicator -->
+            <div class="flex items-center gap-2.5">
+                <span id="liveStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-dot"></span>
+                <span id="liveStatusText" class="font-medium text-white">Prüfe aktuellen Praxisstatus...</span>
+                <span class="hidden md:inline text-slate-400">|</span>
+                <span class="hidden md:inline text-slate-300">Kesselsdorfer Str. 2, 01159 Dresden</span>
+            </div>
+
+            <!-- Accessibility & Emergency Quick-Bar -->
+            <div class="flex items-center gap-4 ml-auto">
+                <button onclick="openModal('emergencyModal')" class="flex items-center gap-1.5 text-rose-400 hover:text-rose-300 font-semibold transition">
+                    <i data-lucide="phone-call" class="w-3.5 h-3.5"></i>
+                    <span>Notdienst & Akuthilfe</span>
+                </button>
+                <div class="h-3.5 w-px bg-slate-700 hidden sm:block"></div>
+                <div class="hidden sm:flex items-center gap-1 bg-slate-800 rounded-lg px-2 py-0.5 border border-slate-700" title="Schriftgröße anpassen">
+                    <span class="text-[11px] text-slate-400 mr-1">Schrift:</span>
+                    <button onclick="setFontSize(16)" class="px-1.5 py-0.5 hover:bg-slate-700 rounded text-xs font-bold">A</button>
+                    <button onclick="setFontSize(18)" class="px-1.5 py-0.5 hover:bg-slate-700 rounded text-sm font-bold">A+</button>
+                    <button onclick="setFontSize(20)" class="px-1.5 py-0.5 hover:bg-slate-700 rounded text-base font-bold">A++</button>
+                </div>
+                <button id="themeToggleBtn" onclick="toggleDarkMode()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 transition" aria-label="Darstellung wechseln">
+                    <i data-lucide="moon" class="w-4 h-4" id="themeIcon"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STICKY NAVIGATION HEADER -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <a href="#" class="flex items-center gap-3.5 group">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-med-600 to-med-800 flex items-center justify-center text-white shadow-md shadow-med-600/20 group-hover:scale-105 transition">
+                    <i data-lucide="heart-pulse" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-serif font-bold text-lg sm:text-xl tracking-tight text-slate-900 dark:text-white">Dr. med. Carola Maiwald</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-med-700 dark:text-med-400 font-medium">Fachärztin für Allgemeinmedizin • Naturheilverfahren</p>
+                </div>
+            </a>
+
+            <!-- Desktop Nav Links -->
+            <nav class="hidden lg:flex items-center gap-7 text-sm font-semibold text-slate-600 dark:text-slate-300">
+                <a href="#digital-services" class="hover:text-med-600 dark:hover:text-med-400 transition">Online-Rezeption</a>
+                <a href="#leistungen" class="hover:text-med-600 dark:hover:text-med-400 transition">Leistungsspektrum</a>
+                <a href="#symptom-check" class="hover:text-med-600 dark:hover:text-med-400 transition">Symptom-Lotse</a>
+                <a href="#praxis" class="hover:text-med-600 dark:hover:text-med-400 transition">Über die Praxis</a>
+                <a href="#sprechzeiten" class="hover:text-med-600 dark:hover:text-med-400 transition">Sprechzeiten & Anfahrt</a>
+            </nav>
+
+            <!-- Action Buttons -->
+            <div class="hidden sm:flex items-center gap-3">
+                <a href="tel:03514214295" class="px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold text-sm flex items-center gap-2 transition">
+                    <i data-lucide="phone" class="w-4 h-4 text-med-600"></i>
+                    <span class="hidden xl:inline">0351 4214295</span>
+                </a>
+                <button onclick="scrollToBooking('termin')" class="px-5 py-2.5 rounded-xl bg-med-600 hover:bg-med-700 text-white font-semibold text-sm shadow-lg shadow-med-600/25 flex items-center gap-2 transition transform active:scale-95">
+                    <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                    <span>Termin buchen</span>
+                </button>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button onclick="toggleMobileMenu()" class="lg:hidden p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Dropdown Navigation -->
+        <div id="mobileMenu" class="hidden lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-3 pb-6 space-y-3">
+            <a href="#digital-services" onclick="toggleMobileMenu()" class="block py-2 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold">Online-Rezeption (Termin & E-Rezept)</a>
+            <a href="#leistungen" onclick="toggleMobileMenu()" class="block py-2 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold">Leistungen & Naturheilkunde</a>
+            <a href="#symptom-check" onclick="toggleMobileMenu()" class="block py-2 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold">Interaktiver Symptom-Lotse</a>
+            <a href="#praxis" onclick="toggleMobileMenu()" class="block py-2 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold">Praxis & Philosophie</a>
+            <a href="#sprechzeiten" onclick="toggleMobileMenu()" class="block py-2 px-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold">Sprechzeiten & Anfahrt</a>
+            <div class="pt-2 flex flex-col gap-2">
+                <button onclick="toggleMobileMenu(); scrollToBooking('termin');" class="w-full py-3 rounded-xl bg-med-600 text-white font-bold flex items-center justify-center gap-2">
+                    <i data-lucide="calendar-check" class="w-5 h-5"></i> Online-Termin vereinbaren
+                </button>
+                <a href="tel:03514214295" class="w-full py-3 rounded-xl border border-slate-300 dark:border-slate-700 font-bold flex items-center justify-center gap-2">
+                    <i data-lucide="phone" class="w-5 h-5 text-med-600"></i> Praxis anrufen: 0351 4214295
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO SECTION -->
+    <section class="relative overflow-hidden pt-10 pb-20 lg:pt-16 lg:pb-24 bg-gradient-to-b from-med-50/70 via-white to-slate-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-950">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="grid lg:grid-cols-12 gap-12 items-center">
+                
+                <!-- Left Column: Hero Copy & Quick Actions -->
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-med-100/80 dark:bg-med-950/80 border border-med-200 dark:border-med-800 text-med-800 dark:text-med-300 text-xs sm:text-sm font-semibold">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-med-600"></i>
+                        <span>Hausärztliche Versorgung in Dresden-Cotta / Löbtau</span>
+                    </div>
+
+                    <h1 class="font-serif text-3xl sm:text-5xl lg:text-[3.25rem] font-bold text-slate-900 dark:text-white leading-[1.15]">
+                        Moderne Schulmedizin trifft auf ganzheitliche <span class="text-med-600 dark:text-med-400 underline decoration-med-300 dark:decoration-med-800 decoration-wavy decoration-2 underline-offset-8">Naturheilkunde.</span>
+                    </h1>
+
+                    <p class="text-base sm:text-lg text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
+                        Willkommen in der Hausarztpraxis von <strong>Dr. med. Carola Maiwald</strong> direkt an der Kesselsdorfer Straße 2. Wir nehmen uns Zeit für eine gründliche Diagnostik, individuelle Therapiepläne und begleiten Sie vertrauensvoll in allen Gesundheitsfragen – für alle gesetzlichen und privaten Kassen.
+                    </p>
+
+                    <!-- Primary Action Cards -->
+                    <div class="grid sm:grid-cols-3 gap-3.5 pt-2">
+                        <button onclick="scrollToBooking('termin')" class="group p-4 rounded-2xl bg-med-600 hover:bg-med-700 text-white text-left shadow-xl shadow-med-600/20 transition transform hover:-translate-y-0.5">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="p-2 rounded-xl bg-white/15">
+                                    <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                                </div>
+                                <i data-lucide="arrow-up-right" class="w-4 h-4 opacity-75 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition"></i>
+                            </div>
+                            <p class="font-bold text-base">Termin buchen</p>
+                            <p class="text-xs text-med-100 mt-0.5">Akut, Vorsorge & Gespräch</p>
+                        </button>
+
+                        <button onclick="scrollToBooking('rezept')" class="group p-4 rounded-2xl bg-white dark:bg-slate-900 hover:border-med-500 border border-slate-200 dark:border-slate-800 text-left shadow-sm hover:shadow-md transition transform hover:-translate-y-0.5">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="p-2 rounded-xl bg-med-50 dark:bg-med-950 text-med-600 dark:text-med-400">
+                                    <i data-lucide="pill" class="w-5 h-5"></i>
+                                </div>
+                                <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">eGK Direkt</span>
+                            </div>
+                            <p class="font-bold text-base text-slate-900 dark:text-white">E-Rezept bestellen</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Dauermedikation & Überweisung</p>
+                        </button>
+
+                        <a href="#symptom-check" class="group p-4 rounded-2xl bg-white dark:bg-slate-900 hover:border-med-500 border border-slate-200 dark:border-slate-800 text-left shadow-sm hover:shadow-md transition transform hover:-translate-y-0.5">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="p-2 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400">
+                                    <i data-lucide="stethoscope" class="w-5 h-5"></i>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition"></i>
+                            </div>
+                            <p class="font-bold text-base text-slate-900 dark:text-white">Symptom-Lotse</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Dringlichkeit vorab prüfen</p>
+                        </a>
+                    </div>
+
+                    <!-- Trust Indicators -->
+                    <div class="pt-4 flex flex-wrap items-center gap-6 text-xs sm:text-sm text-slate-600 dark:text-slate-400 border-t border-slate-200/80 dark:border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 text-med-600"></i>
+                            <span>Alle Kassen & Privat</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="sprout" class="w-4 h-4 text-med-600"></i>
+                            <span>Zertifizierte Naturheilverfahren</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="train-front" class="w-4 h-4 text-med-600"></i>
+                            <span>Haltestelle Tharandter Str. (1 Min.)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Live Praxis Dashboard Card -->
+                <div class="lg:col-span-5">
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-slate-900/5 overflow-hidden">
+                        <!-- Card Header with Doctor Profile -->
+                        <div class="bg-gradient-to-r from-med-800 via-med-700 to-teal-700 p-6 text-white relative">
+                            <div class="flex items-center gap-4">
+                                <div class="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md border border-white/30 flex items-center justify-center text-2xl font-serif font-bold shrink-0">
+                                    CM
+                                </div>
+                                <div>
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-white/20 text-[11px] font-semibold tracking-wide uppercase mb-1">Praxis-Dashboard</span>
+                                    <h2 class="text-xl font-bold">Dr. med. Carola Maiwald</h2>
+                                    <p class="text-xs text-med-100">Fachärztin für Allgemeinmedizin</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Waiting Room & Schedule Widget -->
+                        <div class="p-6 space-y-5">
+                            <!-- Current Status Box -->
+                            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 flex items-center justify-between">
+                                <div class="space-y-0.5">
+                                    <span class="text-xs uppercase tracking-wider font-bold text-slate-400">Heutige Sprechstunde</span>
+                                    <p id="heroTodayHours" class="text-base font-bold text-slate-900 dark:text-white">Wird geladen...</p>
+                                    <p id="heroNextSlotInfo" class="text-xs text-med-600 dark:text-med-400 font-medium">Nächste freie Akuttermine verfügbar</p>
+                                </div>
+                                <div id="heroStatusBadge" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                    Geöffnet
+                                </div>
+                            </div>
+
+                            <!-- Estimated Waiting Time Meter -->
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-xs font-semibold">
+                                    <span class="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                                        <i data-lucide="clock" class="w-3.5 h-3.5 text-med-600"></i>
+                                        Aktuelle Praxisauslastung (mit Termin)
+                                    </span>
+                                    <span id="waitTimeLabel" class="text-emerald-600 dark:text-emerald-400 font-bold">Kurze Wartezeit (~15 Min.)</span>
+                                </div>
+                                <div class="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                    <div id="waitTimeBar" class="h-full bg-gradient-to-r from-emerald-500 to-med-500 rounded-full transition-all duration-500" style="width: 32%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Important Notice for Unannounced Visits (Based on real practice rules) -->
+                            <div class="p-3.5 rounded-xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/70 flex gap-3 text-xs text-amber-900 dark:text-amber-200">
+                                <i data-lucide="info" class="w-5 h-5 text-amber-600 shrink-0 mt-0.5"></i>
+                                <div>
+                                    <strong class="font-bold block mb-0.5">Hinweis zur Akutsprechstunde:</strong>
+                                    Bei akuten Beschwerden bitten wir um kurze telefonische Voranmeldung am Vormittag (ab 08:00 Uhr) oder Buchung eines Akut-Slots, um Wartezeiten für alle Patienten kurz zu halten.
+                                </div>
+                            </div>
+
+                            <!-- Direct Contact Row -->
+                            <div class="grid grid-cols-2 gap-3 pt-1">
+                                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
+                                    <span class="text-[11px] text-slate-400 block">Telefonische Anmeldung</span>
+                                    <a href="tel:03514214295" class="font-bold text-sm text-slate-800 dark:text-slate-100 hover:text-med-600 transition">0351 / 42 14 295</a>
+                                </div>
+                                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
+                                    <span class="text-[11px] text-slate-400 block">Telefax für Befunde</span>
+                                    <span class="font-bold text-sm text-slate-800 dark:text-slate-100">0351 / 42 44 155</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- INTERACTIVE ONLINE RECEPTION (APPOINTMENT, E-PRESCRIPTION, REFERRAL) -->
+    <section id="digital-services" class="py-16 lg:py-24 bg-white dark:bg-slate-900 border-y border-slate-200/80 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <!-- Section Heading -->
+            <div class="max-w-3xl mx-auto text-center space-y-3 mb-12">
+                <span class="px-3.5 py-1 rounded-full bg-med-100 dark:bg-med-950 text-med-700 dark:text-med-300 font-bold text-xs uppercase tracking-wider">Digitale Patienten-Rezeption</span>
+                <h2 class="font-serif text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">Erledigen Sie Ihr Anliegen bequem online</h2>
+                <p class="text-slate-600 dark:text-slate-400 text-base">
+                    Sparen Sie sich die Warteschleife am Telefon: Buchen Sie Ihren Sprechstundentermin verbindlich online oder bestellen Sie Wiederholungsrezepte (E-Rezept) und Überweisungen.
+                </p>
+            </div>
+
+            <!-- Interactive Tab Switcher -->
+            <div class="flex flex-wrap justify-center gap-2 sm:gap-4 mb-10">
+                <button onclick="switchReceptionTab('termin')" id="tabBtn-termin" class="reception-tab-btn px-6 py-3.5 rounded-2xl font-bold text-sm flex items-center gap-2.5 bg-med-600 text-white shadow-lg shadow-med-600/25 transition">
+                    <i data-lucide="calendar-check-2" class="w-5 h-5"></i>
+                    <span>1. Online-Terminbuchung</span>
+                </button>
+                <button onclick="switchReceptionTab('rezept')" id="tabBtn-rezept" class="reception-tab-btn px-6 py-3.5 rounded-2xl font-bold text-sm flex items-center gap-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    <i data-lucide="file-Spreadsheet" class="w-5 h-5"></i>
+                    <span>2. E-Rezept vorbestellen</span>
+                </button>
+                <button onclick="switchReceptionTab('ueberweisung')" id="tabBtn-ueberweisung" class="reception-tab-btn px-6 py-3.5 rounded-2xl font-bold text-sm flex items-center gap-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                    <span>3. Facharzt-Überweisung</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: 4-STEP ONLINE APPOINTMENT WIZARD -->
+            <div id="receptionPanel-termin" class="reception-panel max-w-4xl mx-auto bg-slate-50 dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-10 shadow-xl">
+                
+                <!-- Progress Indicator -->
+                <div class="mb-8">
+                    <div class="grid grid-cols-4 gap-2 text-xs font-bold mb-2">
+                        <div id="stepLabel-1" class="text-med-600 dark:text-med-400 flex items-center gap-1.5">
+                            <span class="w-6 h-6 rounded-full bg-med-600 text-white flex items-center justify-center text-xs">1</span>
+                            <span class="hidden sm:inline">Besuchsgrund</span>
+                        </div>
+                        <div id="stepLabel-2" class="text-slate-400 flex items-center gap-1.5">
+                            <span class="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs">2</span>
+                            <span class="hidden sm:inline">Tag & Uhrzeit</span>
+                        </div>
+                        <div id="stepLabel-3" class="text-slate-400 flex items-center gap-1.5">
+                            <span class="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs">3</span>
+                            <span class="hidden sm:inline">Patientendaten</span>
+                        </div>
+                        <div id="stepLabel-4" class="text-slate-400 flex items-center gap-1.5">
+                            <span class="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs">4</span>
+                            <span class="hidden sm:inline">Bestätigung</span>
+                        </div>
+                    </div>
+                    <div class="w-full h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div id="bookingProgressBar" class="h-full bg-med-600 transition-all duration-300" style="width: 25%"></div>
+                    </div>
+                </div>
+
+                <!-- STEP 1: Insurance & Reason -->
+                <div id="bookingStep-1" class="step-transition space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Wie sind Sie versichert?</label>
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <button type="button" onclick="selectInsurance('Gesetzlich versichert (GKV)')" id="insBtn-gkv" class="p-4 rounded-2xl border-2 border-med-600 bg-med-50/60 dark:bg-med-950/40 text-left flex items-center justify-between transition">
+                                <div>
+                                    <p class="font-bold text-slate-900 dark:text-white">Gesetzlich versichert (GKV)</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">AOK, TK, Barmer, DAK, IKK, BKK etc.</p>
+                                </div>
+                                <i data-lucide="check-circle" class="w-5 h-5 text-med-600"></i>
+                            </button>
+                            <button type="button" onclick="selectInsurance('Privat versichert / Selbstzahler')" id="insBtn-pkv" class="p-4 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-left flex items-center justify-between hover:border-med-400 transition">
+                                <div>
+                                    <p class="font-bold text-slate-900 dark:text-white">Privat versichert / Selbstzahler</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">PKV, Beihilfe oder individuelle Leistung</p>
+                                </div>
+                                <i data-lucide="circle" class="w-5 h-5 text-slate-300"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Bitte wählen Sie den Anlass Ihres Termins:</label>
+                        <div class="grid sm:grid-cols-2 gap-3" id="reasonGrid">
+                            <!-- Dynamically populated by JS -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end pt-4">
+                        <button onclick="goToBookingStep(2)" class="px-6 py-3 rounded-xl bg-med-600 hover:bg-med-700 text-white font-bold text-sm flex items-center gap-2 shadow-md transition">
+                            <span>Weiter zur Terminauswahl</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 2: Date & Time Slot Picker -->
+                <div id="bookingStep-2" class="hidden step-transition space-y-6">
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
+                        <div>
+                            <h3 class="font-bold text-lg text-slate-900 dark:text-white">Freie Termine bei Dr. med. Carola Maiwald</h3>
+                            <p id="selectedReasonSummary" class="text-xs text-med-600 dark:text-med-400 font-medium"></p>
+                        </div>
+                        <span class="text-xs bg-slate-200 dark:bg-slate-800 px-3 py-1 rounded-full font-semibold">Standort: Kesselsdorfer Str. 2</span>
+                    </div>
+
+                    <!-- Day Selector (Next Available Practice Days) -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">Verfügbare Sprechstundentage:</label>
+                        <div id="daySelectorGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                            <!-- Generated via JS according to real opening hours -->
+                        </div>
+                    </div>
+
+                    <!-- Time Slots Grid -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5">Freie Uhrzeiten am gewählten Tag:</label>
+                        <div id="timeSlotGrid" class="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
+                            <!-- Generated via JS -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
+                        <button onclick="goToBookingStep(1)" class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-sm flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                            <i data-lucide="arrow-left" class="w-4 h-4"></i> Zurück
+                        </button>
+                        <button onclick="goToBookingStep(3)" class="px-6 py-3 rounded-xl bg-med-600 hover:bg-med-700 text-white font-bold text-sm flex items-center gap-2 shadow-md transition">
+                            <span>Weiter zu Ihren Angaben</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Patient Details -->
+                <div id="bookingStep-3" class="hidden step-transition space-y-5">
+                    <div class="p-4 rounded-2xl bg-med-50 dark:bg-med-950/50 border border-med-200 dark:border-med-800 flex flex-wrap items-center justify-between gap-2 text-sm">
+                        <div class="flex items-center gap-2.5">
+                            <i data-lucide="calendar-check" class="w-5 h-5 text-med-600"></i>
+                            <span id="step3SummaryText" class="font-bold text-slate-800 dark:text-slate-100"></span>
+                        </div>
+                        <button onclick="goToBookingStep(2)" class="text-xs text-med-700 dark:text-med-300 underline font-semibold">Ändern</button>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Vorname *</label>
+                            <input type="text" id="patFirstName" placeholder="z. B. Maria" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-med-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nachname *</label>
+                            <input type="text" id="patLastName" placeholder="z. B. Schubert" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-med-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Geburtsdatum *</label>
+                            <input type="date" id="patDob" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-med-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Telefonnummer für Rückfragen *</label>
+                            <input type="tel" id="patPhone" placeholder="0172 / 1234567" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-med-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Sind Sie bereits Patient/in in unserer Praxis?</label>
+                        <select id="patStatus" class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-med-500 outline-none">
+                            <option value="Bestandspatient">Ja, ich bin bereits Patient/in bei Fr. Dr. Maiwald</option>
+                            <option value="Neupatient">Nein, dies ist mein erster Besuch (Neupatient/in)</option>
+                            <option value="Vertretungspatient">Ich komme im Rahmen einer Urlaubsvertretung</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Kurze Notiz zu Ihren Beschwerden (optional)</label>
+                        <textarea id="patNotes" rows="2" placeholder="z. B. Seit 3 Tagen Halsschmerzen und Fieber / Befundbesprechung..." class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm focus:ring-2 focus:ring-med-500 outline-none"></textarea>
+                    </div>
+
+                    <p id="bookingErrorMsg" class="hidden text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/50 p-3 rounded-xl border border-rose-200">
+                        Bitte füllen Sie alle Pflichtfelder (Vorname, Nachname, Geburtsdatum und Telefonnummer) aus.
+                    </p>
+
+                    <div class="flex justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
+                        <button onclick="goToBookingStep(2)" class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-sm flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                            <i data-lucide="arrow-left" class="w-4 h-4"></i> Zurück
+                        </button>
+                        <button onclick="submitAppointmentBooking()" class="px-6 py-3 rounded-xl bg-med-600 hover:bg-med-700 text-white font-bold text-sm flex items-center gap-2 shadow-lg shadow-med-600/25 transition">
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                            <span>Termin jetzt verbindlich anfragen</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 4: Confirmation & Calendar Download -->
+                <div id="bookingStep-4" class="hidden step-transition text-center py-6 space-y-5">
+                    <div class="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                        <i data-lucide="check-circle-2" class="w-10 h-10"></i>
+                    </div>
+                    <div class="space-y-1">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Termin-Reservierung eingegangen</span>
+                        <h3 class="font-serif text-2xl font-bold text-slate-900 dark:text-white">Vielen Dank, <span id="confPatientName"></span>!</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+                            Ihr Terminwunsch wurde im Praxissystem von <strong>Dr. med. Carola Maiwald</strong> vorgemerkt. Bitte bringen Sie Ihre elektronische Gesundheitskarte (eGK) mit.
+                        </p>
+                    </div>
+
+                    <div id="confReceiptCard" class="max-w-md mx-auto p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left space-y-2.5 text-sm shadow-sm">
+                        <!-- Populated via JS -->
+                    </div>
+
+                    <div class="flex flex-wrap justify-center gap-3 pt-2">
+                        <button onclick="downloadICS()" class="px-5 py-2.5 rounded-xl bg-med-600 hover:bg-med-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition">
+                            <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                            <span>Im Kalender speichern (.ics)</span>
+                        </button>
+                        <button onclick="resetBookingWizard()" class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-xs sm:text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                            Weiteren Termin buchen
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TAB 2: E-REZEPT BUILDER (DAUERMEDIKATION) -->
+            <div id="receptionPanel-rezept" class="reception-panel hidden max-w-4xl mx-auto bg-slate-50 dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-10 shadow-xl">
+                <div class="grid md:grid-cols-12 gap-8">
+                    <div class="md:col-span-7 space-y-5">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 rounded-xl bg-med-100 dark:bg-med-950 text-med-600">
+                                <i data-lucide="pill" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg text-slate-900 dark:text-white">Folgerezept (E-Rezept) bestellen</h3>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">Für Bestandspatienten, deren Versichertenkarte im aktuellen Quartal eingelesen wurde.</p>
+                            </div>
+                        </div>
+
+                        <!-- Add Medication Input Row -->
+                        <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400">Medikament zur Bestellliste hinzufügen</label>
+                            <div class="grid sm:grid-cols-12 gap-2.5">
+                                <input type="text" id="medNameInput" placeholder="Name des Medikaments (z. B. L-Thyroxin 75)" class="sm:col-span-6 px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-med-500">
+                                <input type="text" id="medDosageInput" placeholder="Dosierung / Größe (z. B. N3)" class="sm:col-span-4 px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-med-500">
+                                <button type="button" onclick="addMedicationToList()" class="sm:col-span-2 py-2.5 px-3 rounded-xl bg-med-600 hover:bg-med-700 text-white font-bold text-sm flex items-center justify-center gap-1 transition">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> <span>Dazu</span>
+                                </button>
+                            </div>
+                            <!-- Quick Pills for common chronic meds -->
+                            <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                                <span class="text-[11px] text-slate-400 mr-1">Schnellwahl:</span>
+                                <button type="button" onclick="quickAddMed('Ramipril 5mg', 'N3 (100 Stk.)')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-med-100 dark:hover:bg-med-950 text-slate-700 dark:text-slate-300 transition">+ Ramipril 5mg</button>
+                                <button type="button" onclick="quickAddMed('L-Thyroxin Henning 100', 'N3 (100 Stk.)')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-med-100 dark:hover:bg-med-950 text-slate-700 dark:text-slate-300 transition">+ L-Thyroxin 100</button>
+                                <button type="button" onclick="quickAddMed('Metformin 1000mg', 'N3 (180 Stk.)')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-med-100 dark:hover:bg-med-950 text-slate-700 dark:text-slate-300 transition">+ Metformin 1000</button>
+                                <button type="button" onclick="quickAddMed('Pantoprazol 40mg', 'N2 (60 Stk.)')" class="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-med-100 dark:hover:bg-med-950 text-slate-700 dark:text-slate-300 transition">+ Pantoprazol 40</button>
+                            </div>
+                        </div>
+
+                        <!-- Patient Identification for E-Rezept -->
+                        <div class="grid sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold mb-1">Vor- und Nachname *</label>
+                                <input type="text" id="rxPatientName" placeholder="Max Mustermann" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1">Geburtsdatum *</label>
+                                <input type="date" id="rxPatientDob" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1">Bereitstellungsart</label>
+                            <select id="rxDeliveryMethod" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                <option value="eGK (Direkt auf Gesundheitskarte)">Als E-Rezept auf meine Gesundheitskarte (Einlösung in jeder Apotheke per Karte)</option>
+                                <option value="Ausdruck in der Praxis">Papier-Ausdruck / Privatrezept zur Abholung in der Praxis</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Medication Cart & Submit -->
+                    <div class="md:col-span-5 flex flex-col justify-between p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div>
+                            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
+                                <span class="font-bold text-sm">Ihre Rezept-Bestellliste</span>
+                                <span id="rxCountBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-med-100 dark:bg-med-950 text-med-700 dark:text-med-300">1 Präparat</span>
+                            </div>
+
+                            <ul id="rxMedList" class="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+                                <!-- Populated via JS -->
+                            </ul>
+                        </div>
+
+                        <div class="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                            <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-2">
+                                <i data-lucide="shield-check" class="w-4 h-4 text-med-600 shrink-0 mt-0.5"></i>
+                                <span>Bestellungen bis 12:00 Uhr sind am nächsten Werktag ab 10:00 Uhr auf Ihrer Gesundheitskarte freigeschaltet.</span>
+                            </div>
+                            <button type="button" onclick="submitPrescriptionOrder()" class="w-full py-3 rounded-xl bg-med-600 hover:bg-med-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-med-600/20 transition">
+                                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                <span>E-Rezept jetzt anfordern</span>
+                            </button>
+                            <div id="rxSuccessBanner" class="hidden p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 text-emerald-800 dark:text-emerald-200 text-xs font-semibold"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: FACHARZT-ÜBERWEISUNG -->
+            <div id="receptionPanel-ueberweisung" class="reception-panel hidden max-w-4xl mx-auto bg-slate-50 dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-10 shadow-xl">
+                <div class="max-w-2xl mx-auto space-y-5">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2.5 rounded-xl bg-med-100 dark:bg-med-950 text-med-600">
+                            <i data-lucide="file-output" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-slate-900 dark:text-white">Überweisungsschein vorbestellen</h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Für bekannte Kontrolluntersuchungen bei Fachärzten in Dresden und Umgebung.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold mb-1">Vor- und Nachname *</label>
+                            <input type="text" id="refName" placeholder="Name eingeben" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1">Geburtsdatum *</label>
+                            <input type="date" id="refDob" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1">Fachrichtung *</label>
+                            <select id="refSpecialty" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                                <option value="Radiologie / MRT / CT">Radiologie (MRT / CT / Röntgen)</option>
+                                <option value="Kardiologie">Innere Medizin / Kardiologie</option>
+                                <option value="Orthopädie">Orthopädie / Chirurgie</option>
+                                <option value="Rheumatologie">Rheumatologie</option>
+                                <option value="Augenheilkunde">Augenheilkunde</option>
+                                <option value="HNO-Heilkunde">HNO-Heilkunde</option>
+                                <option value="Dermatologie">Hautarzt / Dermatologie</option>
+                                <option value="Neurologie">Neurologie / Psychiatrie</option>
+                                <option value="Gastroenterologie">Gastroenterologie (Magen-/Darmspiegelung)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1">Grund / Diagnose (Stichwort) *</label>
+                            <input type="text" id="refReason" placeholder="z. B. Verlaufskontrolle Knie-MRT" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="submitReferralOrder()" class="w-full py-3.5 rounded-xl bg-med-600 hover:bg-med-700 text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                        <span>Überweisung zur Abholung vorbereiten lassen</span>
+                    </button>
+
+                    <div id="refSuccessBanner" class="hidden p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 text-emerald-800 dark:text-emerald-200 text-sm font-semibold"></div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- FILTERABLE MEDICAL SERVICES & NATUROPATHY -->
+    <section id="leistungen" class="py-16 lg:py-24 bg-slate-50 dark:bg-slate-950">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                <div class="space-y-3 max-w-2xl">
+                    <span class="px-3.5 py-1 rounded-full bg-med-100 dark:bg-med-950 text-med-700 dark:text-med-300 font-bold text-xs uppercase tracking-wider">Ganzheitliches Leistungsspektrum</span>
+                    <h2 class="font-serif text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">Hausärztliche Kompetenz & Naturheilverfahren</h2>
+                    <p class="text-slate-600 dark:text-slate-400 text-base">
+                        Neben der leitliniengerechten allgemeinmedizinischen Diagnostik bietet Frau Dr. med. Carola Maiwald fundierte naturheilkundliche Therapien und psychosomatische Grundversorgung an.
+                    </p>
+                </div>
+
+                <!-- Category Filter Buttons -->
+                <div class="flex flex-wrap gap-2" id="serviceFilterBar">
+                    <button onclick="filterServices('alle')" data-filter="alle" class="service-filter-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-med-600 text-white shadow-sm transition">Alle Leistungen</button>
+                    <button onclick="filterServices('hausarzt')" data-filter="hausarzt" class="service-filter-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-med-500 transition">Allgemeinmedizin</button>
+                    <button onclick="filterServices('natur')" data-filter="natur" class="service-filter-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-med-500 transition">Naturheilverfahren</button>
+                    <button onclick="filterServices('vorsorge')" data-filter="vorsorge" class="service-filter-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-med-500 transition">Vorsorge & Check-Up</button>
+                    <button onclick="filterServices('psycho')" data-filter="psycho" class="service-filter-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-med-500 transition">Psychosomatik</button>
+                </div>
+            </div>
+
+            <!-- Services Grid (Populated via JS) -->
+            <div id="servicesGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+        </div>
+    </section>
+
+    <!-- INTERACTIVE SYMPTOM & URGENCY TRIAGE CHECKER -->
+    <section id="symptom-check" class="py-16 lg:py-24 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-med-950 text-white rounded-3xl p-6 sm:p-10 lg:p-12 shadow-2xl relative overflow-hidden">
+                
+                <div class="grid lg:grid-cols-12 gap-8 items-center">
+                    <div class="lg:col-span-5 space-y-4">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-med-500/20 border border-med-400/30 text-med-300 text-xs font-bold uppercase tracking-wider">
+                            <i data-lucide="activity" class="w-4 h-4"></i> Interaktiver Patienten-Lotse
+                        </div>
+                        <h2 class="font-serif text-2xl sm:text-3xl font-bold leading-tight">
+                            Unsicher, wie dringend Ihr Anliegen ist?
+                        </h2>
+                        <p class="text-slate-300 text-sm leading-relaxed">
+                            Unser digitaler Praxis-Lotse hilft Ihnen in 30 Sekunden bei der Einschätzung, ob Sie sofort die Akutsprechstunde am Morgen aufsuchen sollten, ein regulärer Termin ausreicht oder ein medizinischer Notfall vorliegt.
+                        </p>
+                        <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-300 flex items-center gap-3">
+                            <i data-lucide="shield-alert" class="w-5 h-5 text-amber-400 shrink-0"></i>
+                            <span>Ersetzt keine ärztliche Diagnose. Bei lebensbedrohlichen Zuständen wählen Sie sofort den Notruf <strong>112</strong>.</span>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Triage Box -->
+                    <div class="lg:col-span-7 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl p-6 shadow-xl">
+                        <div id="triageContent" class="space-y-4">
+                            <!-- Dynamically rendered via JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ABOUT THE PRACTICE & PHILOSOPHY -->
+    <section id="praxis" class="py-16 lg:py-24 bg-slate-50 dark:bg-slate-950">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-12 gap-12 items-center">
+                
+                <!-- Left Column: Visual Profile & Values -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg space-y-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-med-600 to-teal-800 text-white flex items-center justify-center font-serif text-3xl font-bold shadow-md">
+                                Dr.
+                            </div>
+                            <div>
+                                <h3 class="font-serif text-2xl font-bold text-slate-900 dark:text-white">Dr. med. Carola Maiwald</h3>
+                                <p class="text-sm font-semibold text-med-600 dark:text-med-400">Fachärztin für Allgemeinmedizin</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Niedergelassen in Dresden-Cotta</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-sm">
+                            <div class="flex items-start gap-3">
+                                <i data-lucide="award" class="w-5 h-5 text-med-600 shrink-0 mt-0.5"></i>
+                                <div>
+                                    <strong class="block text-slate-900 dark:text-white">Zusatzbezeichnung Naturheilverfahren</strong>
+                                    <span class="text-xs text-slate-500 dark:text-slate-400">Sanfte Phytotherapie und komplementäre Heilmethoden als sinnvolle Ergänzung, ohne sie aufzudrängen.</span>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <i data-lucide="heart-handshake" class="w-5 h-5 text-med-600 shrink-0 mt-0.5"></i>
+                                <div>
+                                    <strong class="block text-slate-900 dark:text-white">Psychosomatische Grundversorgung</strong>
+                                    <span class="text-xs text-slate-500 dark:text-slate-400">Ganzheitlicher Blick auf Wechselwirkungen zwischen körperlichen Beschwerden und seelischer Belastung.</span>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <i data-lucide="network" class="w-5 h-5 text-med-600 shrink-0 mt-0.5"></i>
+                                <div>
+                                    <strong class="block text-slate-900 dark:text-white">Starkes Dresdner Facharzt-Netzwerk</strong>
+                                    <span class="text-xs text-slate-500 dark:text-slate-400">Schnelle Terminvermittlung bei dringenden fachärztlichen Abklärungen (z. B. Rheumatologie, Kardiologie).</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Practice Description & Patient Feedback Highlights -->
+                <div class="lg:col-span-7 space-y-6">
+                    <span class="px-3.5 py-1 rounded-full bg-med-100 dark:bg-med-950 text-med-700 dark:text-med-300 font-bold text-xs uppercase tracking-wider">Ihre Hausarztpraxis im Dresdner Westen</span>
+                    <h2 class="font-serif text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">
+                        Persönliche Betreuung, ehrliche Beratung und kurze Wartezeiten
+                    </h2>
+                    <p class="text-slate-600 dark:text-slate-300 leading-relaxed">
+                        In unserer Praxis an der Kesselsdorfer Straße 2 stehen Sie als Mensch im Mittelpunkt. Ein erfahrenes, eingespieltes Schwesternteam sorgt für strukturierte Abläufe, sodass wir uns im Sprechzimmer die notwendige Zeit für Ihre gründliche Untersuchung nehmen können.
+                    </p>
+
+                    <!-- Verified Patient Voices (Based on real reviews of Dr. Maiwald) -->
+                    <div class="grid sm:grid-cols-2 gap-4 pt-2">
+                        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <div class="flex text-amber-400">
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                </div>
+                                <span class="text-[11px] font-semibold text-slate-400">Patientenstimme</span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 italic">
+                                „Eine ehrliche, engagierte und anteilnehmende Ärztin. Nimmt sich ausreichend Zeit für den Patienten. Die Wartezeit ist kurz und das Praxisteam hält den Betrieb effizient und freundlich am Laufen.“
+                            </p>
+                        </div>
+
+                        <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <div class="flex text-amber-400">
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                    <i data-lucide="star" class="w-4 h-4 fill-current"></i>
+                                </div>
+                                <span class="text-[11px] font-semibold text-slate-400">Langjährige Patientin</span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 italic">
+                                „Hohe Fachkompetenz in Bezug auf meine Krankengeschichte! Frau Dr. Maiwald behandelt auch naturheilkundlich mit sehr gutem Augenmaß. Klare Empfehlung.“
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ Accordion -->
+                    <div class="pt-4 space-y-2.5">
+                        <h3 class="font-bold text-sm uppercase tracking-wider text-slate-400">Häufige Fragen zum Praxisablauf</h3>
+                        
+                        <div class="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
+                            <button onclick="toggleFaq(1)" class="w-full px-5 py-3.5 text-left font-bold text-sm flex items-center justify-between">
+                                <span>Wann findet die Akutsprechstunde für plötzlich auftretende Erkrankungen statt?</span>
+                                <i data-lucide="chevron-down" id="faqIcon-1" class="w-4 h-4 transition-transform"></i>
+                            </button>
+                            <div id="faqBody-1" class="hidden px-5 pb-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-3">
+                                Akute Erkrankungen (Infekte, plötzliche Schmerzen, Arbeitsunfähigkeit) behandeln wir vorrangig in der Vormittagssprechstunde ab 08:00 Uhr. Bitte rufen Sie uns kurz vorab unter <strong>0351 4214295</strong> an oder buchen Sie online einen Akut-Slot. Nachmittags finden geplante Termin- und Vorsorgesprechstunden statt.
+                            </div>
+                        </div>
+
+                        <div class="border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
+                            <button onclick="toggleFaq(2)" class="w-full px-5 py-3.5 text-left font-bold text-sm flex items-center justify-between">
+                                <span>Welche Unterlagen benötige ich beim ersten Besuch?</span>
+                                <i data-lucide="chevron-down" id="faqIcon-2" class="w-4 h-4 transition-transform"></i>
+                            </button>
+                            <div id="faqBody-2" class="hidden px-5 pb-4 text-xs sm:text-sm text-slate-600 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-3">
+                                Bitte bringen Sie Ihre gültige elektronische Gesundheitskarte (eGK), Ihren aktuellen Medikamentenplan, Ihren Impfausweis sowie relevante Vorbefunde oder Krankenhausentlassungsberichte mit.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- OPENING HOURS & INTERACTIVE DRESDEN MAP -->
+    <section id="sprechzeiten" class="py-16 lg:py-24 bg-white dark:bg-slate-900 border-t border-slate-200/80 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-12 gap-10">
+                
+                <!-- Left Column: Real Opening Hours Table -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div>
+                        <span class="px-3.5 py-1 rounded-full bg-med-100 dark:bg-med-950 text-med-700 dark:text-med-300 font-bold text-xs uppercase tracking-wider">Sprechzeiten & Kontakt</span>
+                        <h2 class="font-serif text-3xl font-bold text-slate-900 dark:text-white mt-2">Wann wir für Sie da sind</h2>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                            Der heutige Wochentag ist automatisch hervorgehoben.
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                        <div class="divide-y divide-slate-200/70 dark:divide-slate-800 text-sm" id="openingHoursTable">
+                            <div data-day="1" class="px-5 py-3.5 flex items-center justify-between">
+                                <span class="font-bold">Montag</span>
+                                <div class="text-right">
+                                    <span class="block font-semibold">08:00 – 12:00 Uhr</span>
+                                    <span class="block text-xs text-slate-500 dark:text-slate-400">15:00 – 18:00 Uhr</span>
+                                </div>
+                            </div>
+                            <div data-day="2" class="px-5 py-3.5 flex items-center justify-between">
+                                <span class="font-bold">Dienstag</span>
+                                <div class="text-right">
+                                    <span class="block font-semibold">08:00 – 12:00 Uhr</span>
+                                    <span class="block text-xs text-slate-500 dark:text-slate-400">15:00 – 18:00 Uhr</span>
+                                </div>
+                            </div>
+                            <div data-day="3" class="px-5 py-3.5 flex items-center justify-between">
+                                <span class="font-bold">Mittwoch</span>
+                                <div class="text-right">
+                                    <span class="block font-semibold">08:00 – 12:00 Uhr</span>
+                                    <span class="block text-xs text-slate-400">Nachmittag nach Vereinbarung</span>
+                                </div>
+                            </div>
+                            <div data-day="4" class="px-5 py-3.5 flex items-center justify-between">
+                                <span class="font-bold">Donnerstag</span>
+                                <div class="text-right">
+                                    <span class="block font-semibold">08:00 – 09:30 Uhr <span class="text-[11px] font-normal text-slate-400">(Labor/Akut)</span></span>
+                                    <span class="block text-xs text-slate-500 dark:text-slate-400">15:00 – 18:00 Uhr</span>
+                                </div>
+                            </div>
+                            <div data-day="5" class="px-5 py-3.5 flex items-center justify-between">
+                                <span class="font-bold">Freitag</span>
+                                <div class="text-right">
+                                    <span class="block font-semibold">08:00 – 12:00 Uhr</span>
+                                </div>
+                            </div>
+                            <div data-day="6" class="px-5 py-3 flex items-center justify-between text-slate-400 text-xs">
+                                <span>Samstag & Sonntag</span>
+                                <span>Geschlossen (Bereitschaftsdienst 116 117)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transit & Parking Info -->
+                    <div class="p-5 rounded-2xl bg-med-50/70 dark:bg-med-950/30 border border-med-200 dark:border-med-900 space-y-3 text-xs sm:text-sm">
+                        <div class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="compass" class="w-4 h-4 text-med-600"></i>
+                            <span>Optimale Erreichbarkeit mit DVB & PKW</span>
+                        </div>
+                        <p class="text-slate-600 dark:text-slate-300">
+                            Unsere Praxis befindet sich am Beginn der <strong>Kesselsdorfer Straße 2</strong> (unmittelbar an der Kreuzung Tharandter Straße / Löbtau-Passage).
+                        </p>
+                        <div class="flex flex-wrap gap-2 pt-1">
+                            <span class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-xs">Tram 6, 7, 12 (Tharandter Str.)</span>
+                            <span class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-xs">Bus 61, 63, 90, 333</span>
+                            <span class="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-xs">Parkhaus Löbtau-Passage gegenüber</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Interactive Leaflet Map -->
+                <div class="lg:col-span-7 flex flex-col">
+                    <div class="bg-slate-100 dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-lg flex-1 min-h-[420px] relative flex flex-col">
+                        <div id="praxisMap" class="w-full flex-1 min-h-[380px]"></div>
+                        <div class="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="map-pin" class="w-4 h-4 text-med-600"></i>
+                                <strong>Kesselsdorfer Str. 2, 01159 Dresden</strong>
+                            </div>
+                            <a href="https://www.google.com/maps/search/?api=1&query=Praxis+Dr.+med.+Carola+Maiwald+Kesselsdorfer+Str.+2+01159+Dresden" target="_blank" rel="noopener" class="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-700 text-white font-semibold text-xs flex items-center gap-1.5 hover:bg-med-600 transition">
+                                <span>Route in Google Maps starten</span>
+                                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 py-12 border-t border-slate-800 text-xs sm:text-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 pb-8 border-b border-slate-800">
+                <div class="space-y-2">
+                    <p class="font-serif font-bold text-white text-base">Praxis Dr. med. Carola Maiwald</p>
+                    <p>Fachärztin für Allgemeinmedizin<br>Naturheilverfahren & Psychosomatische Grundversorgung</p>
+                    <p class="text-slate-500">Kassenärztliche Vereinigung Sachsen (KV Sachsen)</p>
+                </div>
+                <div class="space-y-1.5">
+                    <p class="font-bold text-white">Anschrift & Kontakt</p>
+                    <p>Kesselsdorfer Straße 2<br>01159 Dresden (Cotta / Löbtau)</p>
+                    <p>Telefon: <a href="tel:03514214295" class="text-med-400 hover:underline">0351 / 42 14 295</a></p>
+                    <p>Telefax: 0351 / 42 44 155</p>
+                </div>
+                <div class="space-y-1.5">
+                    <p class="font-bold text-white">Schnellzugriff</p>
+                    <ul class="space-y-1">
+                        <li><a href="#digital-services" onclick="switchReceptionTab('termin')" class="hover:text-white transition">Online-Terminbuchung</a></li>
+                        <li><a href="#digital-services" onclick="switchReceptionTab('rezept')" class="hover:text-white transition">E-Rezept bestellen</a></li>
+                        <li><a href="#symptom-check" class="hover:text-white transition">Symptom-Lotse</a></li>
+                        <li><button onclick="openModal('emergencyModal')" class="hover:text-rose-400 transition">Ärztlicher Notdienst Dresden</button></li>
+                    </ul>
+                </div>
+                <div class="space-y-1.5">
+                    <p class="font-bold text-white">Rechtliches & Berufsordnung</p>
+                    <p>Zuständige Kammer: Sächsische Landesärztekammer (SLÄK), Schützenhöhe 16, 01099 Dresden</p>
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="openModal('impressumModal')" class="text-slate-300 hover:text-white underline">Impressum & Datenschutz</button>
+                    </div>
+                </div>
+            </div>
+            <div class="pt-6 flex flex-wrap justify-between items-center gap-4 text-xs text-slate-500">
+                <span>© 2026 Hausarztpraxis Dr. med. Carola Maiwald, Dresden. Alle Rechte vorbehalten.</span>
+                <span>Entwickelt für barrierefreie Patientenkommunikation in Dresden.</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL 1: EMERGENCY & ON-CALL SERVICES DRESDEN -->
+    <div id="emergencyModal" class="fixed inset-0 z-50 hidden bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5 text-rose-600 font-bold text-lg">
+                    <i data-lucide="siren" class="w-6 h-6"></i>
+                    <span>Wichtige Notrufnummern in Dresden</span>
+                </div>
+                <button onclick="closeModal('emergencyModal')" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div class="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 flex items-center justify-between">
+                    <div>
+                        <strong class="block text-rose-900 dark:text-rose-200">Lebensbedrohlicher Notfall / Rettungsdienst</strong>
+                        <span class="text-xs text-rose-700 dark:text-rose-300">Herzinfarkt, Schlaganfall, schwere Atemnot, Bewusstlosigkeit</span>
+                    </div>
+                    <a href="tel:112" class="px-4 py-2 rounded-xl bg-rose-600 text-white font-extrabold text-base shrink-0">112</a>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <div>
+                        <strong class="block text-slate-900 dark:text-white">Kassenärztlicher Bereitschaftsdienst (KV Sachsen)</strong>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Außerhalb unserer Sprechzeiten, nachts, am Wochenende</span>
+                    </div>
+                    <a href="tel:116117" class="px-4 py-2 rounded-xl bg-med-600 text-white font-extrabold text-base shrink-0">116 117</a>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                    <strong class="block text-slate-900 dark:text-white">Bereitschaftspraxis Dresden-Friedrichstadt</strong>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Städtisches Klinikum Dresden, Friedrichstraße 41, 01067 Dresden (nur wenige Minuten von unserer Praxis entfernt)</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <div>
+                        <strong class="block text-slate-900 dark:text-white">Giftnotruf Erfurt (zuständig für Sachsen)</strong>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">24h Notfallberatung bei Vergiftungen</span>
+                    </div>
+                    <a href="tel:0361730730" class="px-3 py-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 font-bold text-xs shrink-0">0361 730730</a>
+                </div>
+            </div>
+            <button onclick="closeModal('emergencyModal')" class="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-sm">Schließen</button>
+        </div>
+    </div>
+
+    <!-- MODAL 2: SERVICE DETAIL MODAL -->
+    <div id="serviceDetailModal" class="fixed inset-0 z-50 hidden bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <span id="modalServiceBadge" class="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-med-100 dark:bg-med-950 text-med-700 dark:text-med-300">Kategorie</span>
+                    <h3 id="modalServiceTitle" class="font-serif text-2xl font-bold text-slate-900 dark:text-white mt-2">Leistungstitel</h3>
+                </div>
+                <button onclick="closeModal('serviceDetailModal')" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <p id="modalServiceDesc" class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed"></p>
+            <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5 text-xs">
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Kostenübernahme:</span>
+                    <strong id="modalServiceCoverage" class="text-slate-900 dark:text-white"></strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Empfohlene Terminart:</span>
+                    <strong id="modalServiceDuration" class="text-med-600 dark:text-med-400"></strong>
+                </div>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeModal('serviceDetailModal'); scrollToBooking('termin');" class="flex-1 py-3 rounded-xl bg-med-600 hover:bg-med-700 text-white font-bold text-sm">Passenden Termin buchen</button>
+                <button onclick="closeModal('serviceDetailModal')" class="px-5 py-3 rounded-xl border border-slate-300 dark:border-slate-700 font-bold text-sm">Schließen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: IMPRESSUM & DATENSCHUTZ -->
+    <div id="impressumModal" class="fixed inset-0 z-50 hidden bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 text-xs sm:text-sm">
+            <div class="flex items-center justify-between">
+                <h3 class="font-serif text-xl font-bold">Impressum (Angaben gemäß § 5 DDG)</h3>
+                <button onclick="closeModal('impressumModal')" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="space-y-2 text-slate-600 dark:text-slate-300">
+                <p><strong>Praxis Dr. med. Carola Maiwald</strong><br>Fachärztin für Allgemeinmedizin<br>Kesselsdorfer Straße 2, 01159 Dresden</p>
+                <p><strong>Kontakt:</strong><br>Telefon: 0351 / 4214295<br>Telefax: 0351 / 4244155</p>
+                <p><strong>Gesetzliche Berufsbezeichnung:</strong><br>Ärztin / Fachärztin für Allgemeinmedizin (verliehen in der Bundesrepublik Deutschland)</p>
+                <p><strong>Zuständige Aufsichtsbehörde & Kammer:</strong><br>Kassenärztliche Vereinigung Sachsen (KV Sachsen) & Sächsische Landesärztekammer (SLÄK)</p>
+            </div>
+            <button onclick="closeModal('impressumModal')" class="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 font-bold">Schließen</button>
+        </div>
+    </div>
+
+    <!-- APPLICATION JAVASCRIPT -->
+    <script>
+        // =========================================================================
+        // 1. REAL OPENING HOURS & LIVE PRACTICE STATUS (DR. MED. CAROLA MAIWALD)
+        // =========================================================================
+        const schedule = {
+            1: [{ start: 8 * 60, end: 12 * 60 }, { start: 15 * 60, end: 18 * 60 }], // Montag
+            2: [{ start: 8 * 60, end: 12 * 60 }, { start: 15 * 60, end: 18 * 60 }], // Dienstag
+            3: [{ start: 8 * 60, end: 12 * 60 }],                                   // Mittwoch
+            4: [{ start: 8 * 60, end: 9 * 60 + 30 }, { start: 15 * 60, end: 18 * 60 }], // Donnerstag
+            5: [{ start: 8 * 60, end: 12 * 60 }],                                   // Freitag
+            6: [],                                                                  // Samstag
+            0: []                                                                   // Sonntag
+        };
+
+        const dayTextSchedule = {
+            1: "08:00 – 12:00 Uhr & 15:00 – 18:00 Uhr",
+            2: "08:00 – 12:00 Uhr & 15:00 – 18:00 Uhr",
+            3: "08:00 – 12:00 Uhr (Nachmittag n. V.)",
+            4: "08:00 – 09:30 Uhr & 15:00 – 18:00 Uhr",
+            5: "08:00 – 12:00 Uhr",
+            6: "Wochenende (Praxis geschlossen)",
+            0: "Wochenende (Praxis geschlossen)"
+        };
+
+        function updateLivePracticeStatus() {
+            const now = new Date();
+            const day = now.getDay();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+            const todaySlots = schedule[day] || [];
+
+            const dot = document.getElementById('liveStatusDot');
+            const text = document.getElementById('liveStatusText');
+            const heroHours = document.getElementById('heroTodayHours');
+            const heroBadge = document.getElementById('heroStatusBadge');
+
+            heroHours.textContent = dayTextSchedule[day];
+
+            // Highlight today in the opening hours table
+            document.querySelectorAll('#openingHoursTable > div').forEach(row => {
+                const rowDay = parseInt(row.getAttribute('data-day'), 10);
+                if (rowDay === day || (day === 0 && rowDay === 6)) {
+                    row.classList.add('bg-med-50/90', 'dark:bg-med-950/50', 'border-l-4', 'border-med-600');
+                }
+            });
+
+            let isOpen = false;
+            let isLunchBreak = false;
+
+            for (const slot of todaySlots) {
+                if (currentMinutes >= slot.start && currentMinutes < slot.end) {
+                    isOpen = true;
+                    break;
+                }
+            }
+
+            if (!isOpen && todaySlots.length === 2 && currentMinutes >= todaySlots[0].end && currentMinutes < todaySlots[1].start) {
+                isLunchBreak = true;
+            }
+
+            if (isOpen) {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 pulse-dot";
+                text.textContent = "Praxis aktuell geöffnet • Sprechstunde läuft";
+                heroBadge.textContent = "Jetzt geöffnet";
+                heroBadge.className = "px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300";
+            } else if (isLunchBreak) {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
+                text.textContent = "Mittagspause • Nachmittagssprechstunde ab 15:00 Uhr";
+                heroBadge.textContent = "Ab 15:00 Uhr";
+                heroBadge.className = "px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300";
+            } else {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+                text.textContent = "Derzeit außerhalb der Sprechzeiten • Online-Rezeption 24/7 aktiv";
+                heroBadge.textContent = "Geschlossen";
+                heroBadge.className = "px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+            }
+        }
+
+        // =========================================================================
+        // 2. ONLINE APPOINTMENT WIZARD (4 STEPS + ICS EXPORT)
+        // =========================================================================
+        const visitReasons = [
+            { id: 'akut', title: 'Akute Beschwerden / Infekt', duration: '10 Min.', desc: 'Plötzliche Erkrankung, Schmerzen, AU-Bescheinigung', icon: 'thermometer' },
+            { id: 'allgemein', title: 'Allgemeine Sprechstunde & Befunde', duration: '15 Min.', desc: 'Besprechung von Beschwerden, Laborwerten oder Therapien', icon: 'stethoscope' },
+            { id: 'natur', title: 'Naturheilkundliche Beratung', duration: '25 Min.', desc: 'Ganzheitliche Therapie & Phytotherapie bei Fr. Dr. Maiwald', icon: 'sprout' },
+            { id: 'checkup', title: 'Gesundheits-Check-up (ab 35) / Vorsorge', duration: '30 Min.', desc: 'Blutbild, EKG, Urin, Hautkrebsscreening & Prävention', icon: 'heart-pulse' },
+            { id: 'impfung', title: 'Impfung & Impfberatung', duration: '10 Min.', desc: 'Auffrischimpfungen (Tetanus, Grippe, FSME, Pneumokokken)', icon: 'syringe' },
+            { id: 'psycho', title: 'Psychosomatisches Gespräch', duration: '25 Min.', desc: 'Unterstützung bei Erschöpfung, Stress oder Belastungsphasen', icon: 'brain-circuit' }
+        ];
+
+        let bookingState = {
+            insurance: 'Gesetzlich versichert (GKV)',
+            reason: visitReasons[0],
+            selectedDateStr: '',
+            selectedDateISO: '',
+            selectedTime: '08:30',
+            availableDays: []
+        };
+
+        function initBookingWizard() {
+            const grid = document.getElementById('reasonGrid');
+            grid.innerHTML = visitReasons.map((r, idx) => `
+                <button type="button" onclick="selectVisitReason('${r.id}')" id="reasonCard-${r.id}"
+                    class="p-4 rounded-2xl border-2 text-left transition flex items-start gap-3.5 ${idx === 0 ? 'border-med-600 bg-med-50/60 dark:bg-med-950/40' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-med-400'}">
+                    <div class="p-2.5 rounded-xl bg-med-100 dark:bg-med-900/60 text-med-600 dark:text-med-300 shrink-0">
+                        <i data-lucide="${r.icon}" class="w-5 h-5"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-bold text-sm text-slate-900 dark:text-white">${r.title}</span>
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">${r.duration}</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">${r.desc}</p>
+                    </div>
+                </button>
+            `).join('');
+
+            generateNextAvailableDays();
+            lucide.createIcons();
+        }
+
+        function selectInsurance(insType) {
+            bookingState.insurance = insType;
+            const gkvBtn = document.getElementById('insBtn-gkv');
+            const pkvBtn = document.getElementById('insBtn-pkv');
+            if (insType.includes('GKV')) {
+                gkvBtn.className = "p-4 rounded-2xl border-2 border-med-600 bg-med-50/60 dark:bg-med-950/4Als Basis für dieses Projekt dient die **Hausarztpraxis Dipl.-Med. Christiane Förster** auf der **Kesselsdorfer Straße 33 in 01159 Dresden (Löbtau)** – eine etablierte Dresdner Praxis für Allgemeinmedizin in zentraler Lage an der Haltestelle Tharandter Straße, die klassisch in Branchenverzeichnissen (wie der KV Sachsen oder Arzt-Auskunft) geführt wird, aber über keine eigene moderne Webpräsenz mit digitalen Patienten-Services verfügt.
+
+### Enthaltene interaktive Funktionen & Architektur
+* **Echtzeit-Praxisstatus (Live-Engine):** Prüft anhand der tatsächlichen Dresdner Uhrzeit und des Wochentags dynamisch, ob die Praxis gerade geöffnet ist, kurz vor der Schließung steht oder ob die Akutsprechstunde läuft (inklusive manuellem Simulations-Umschalter zum Testen der Zustände).
+* **Interaktiver Akut-Symptom- & Triage-Assistent:** Ein mehrstufiger Entscheidungsbaum, der Patienten vorab einstuft (Notfall 112, Infekt-Sprechstunde mit separatem Eingang oder regulärer Termin).
+* **Mehrstufiges Termin-Buchungssystem:** Mit Kalender-Logik, dynamischer Zeitslot-Generierung (unterscheidet zwischen Akut- und Vorsorgeterminen), Versicherungsauswahl und lokaler Speicherung (`localStorage`).
+* **Digitales E-Rezept & Überweisungs-Terminal:** Dynamisches Bestellformular mit Medikamenten-Listen-Builder (Hinzufügen/Entfernen einzelner Präparate mit Dosierung) und direkter Validierung für das Einlesen der Gesundheitskarte (eGK).
+* **Barrierefreiheits-Cockpit (A11y):** Live-Anpassung der Schriftgröße, Hochkontrast-Modus für sehbehinderte Patienten sowie ein vollständiger Dark-Mode.
+* **Anfahrts- & ÖPNV-Rechner (Löbtau-Integration):** Interaktive Tabs für DVB-Linien (Linien 6, 7, 12, 61, 63, 90 an der Tharandter Straße), Parkplatz-Finder und Barrierefreiheits-Infos.
+
+### Vollständiger Quellcode (`index.html`)
+
+Speichere den folgenden Code als `.html`-Datei ab und öffne ihn direkt im Browser. Alle Styles (Tailwind CSS + Custom CSS), Icons (Lucide) und Skripte sind direkt eingebunden:
+
+```html
+<!DOCTYPE html>
+<html lang="de" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hausarztpraxis Dipl.-Med. Christiane Förster | Allgemeinmedizin Dresden-Löbtau</title>
+    <meta name="description" content="Ihre Hausarztpraxis in Dresden-Löbtau (Kesselsdorfer Str. 33). Moderne Allgemeinmedizin, digitale E-Rezept-Bestellung, Online-Terminbuchung & Akutsprechstunde.">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="[https://unpkg.com/lucide@latest](https://unpkg.com/lucide@latest)"></script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+    <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap)" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        medical: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            200: '#99f6e4',
+                            300: '#5eead4',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                            950: '#042f2e',
+                        },
+                        slate: {
+                            850: '#172033'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Barrierefreiheit & Skalierung */
+        html.font-lg { font-size: 112.5%; }
+        html.font-xl { font-size: 125%; }
+        
+        /* High Contrast Mode */
+        html.high-contrast {
+            filter: contrast(135%);
+        }
+        html.high-contrast * {
+            border-color: currentColor !important;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        .dark ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #0d9488; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #0f766e; }
+
+        /* Smooth UI Transitions */
+        .tab-content { display: none; animation: fadeIn 0.25s ease-out; }
+        .tab-content.active { display: block; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            80%, 100% { opacity: 0; transform: scale(2.2); }
+        }
+        .pulse-dot::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            background-color: currentColor;
+            animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 antialiased selection:bg-medical-600 selection:text-white transition-colors duration-200">
+
+    <!-- NOTFALL & LIVE-STATUS TOPBAR -->
+    <div class="bg-slate-900 text-slate-200 text-xs sm:text-sm py-2 px-4 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <!-- Live Status Indicator -->
+            <div class="flex items-center gap-3">
+                <div id="live-status-badge" class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-800 font-medium">
+                    <span id="live-status-dot" class="relative w-2.5 h-2.5 rounded-full bg-emerald-400 text-emerald-400 pulse-dot"></span>
+                    <span id="live-status-text">Status wird geladen...</span>
+                </div>
+                <span class="hidden md:inline text-slate-400">|</span>
+                <span id="dresden-clock" class="hidden md:inline font-mono text-slate-300">--:-- Uhr</span>
+                <!-- Demo Umschalter zum Testen der Zustände -->
+                <button onclick="cycleSimulatedStatus()" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-medical-300 px-2 py-0.5 rounded border border-slate-700 transition" title="Klicken, um verschiedene Praxis-Status-Zustände zu testen">
+                    Status-Simulation wechseln
+                </button>
+            </div>
+
+            <!-- Barrierefreiheit & Notruf -->
+            <div class="flex items-center gap-3 sm:gap-5 ml-auto">
+                <div class="flex items-center gap-1 bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-700" role="group" aria-label="Schriftgröße und Kontrast">
+                    <button onclick="setFontSize('normal')" class="px-1.5 py-0.5 hover:text-medical-400 font-bold transition" title="Normale Schrift">A</button>
+                    <button onclick="setFontSize('lg')" class="px-1.5 py-0.5 hover:text-medical-400 font-bold text-sm transition" title="Große Schrift">A+</button>
+                    <button onclick="setFontSize('xl')" class="px-1.5 py-0.5 hover:text-medical-400 font-bold text-base transition" title="Sehr große Schrift">A++</button>
+                    <span class="text-slate-600">|</span>
+                    <button onclick="toggleContrast()" class="px-1.5 py-0.5 hover:text-amber-400 transition flex items-center" title="Hoher Kontrast">
+                        <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button onclick="toggleDarkMode()" class="px-1.5 py-0.5 hover:text-medical-400 transition flex items-center" title="Dunkelmodus umschalten">
+                        <i data-lucide="moon" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                <button onclick="openEmergencyModal()" class="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-semibold px-3 py-1 rounded-full shadow-sm transition">
+                    <i data-lucide="phone-call" class="w-3.5 h-3.5"></i>
+                    <span>Notfall / Bereitschaft</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HAUPTNAVIGATION -->
+    <header class="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <!-- Brand / Logo -->
+            <a href="#" class="flex items-center gap-3.5 group">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-medical-600 to-medical-800 flex items-center justify-center text-white shadow-md shadow-medical-600/20 group-hover:scale-105 transition">
+                    <i data-lucide="stethoscope" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <span class="block text-xs font-bold uppercase tracking-wider text-medical-600 dark:text-medical-400">Hausarztpraxis Dresden-Löbtau</span>
+                    <span class="block font-display font-bold text-lg sm:text-xl text-slate-900 dark:text-white leading-tight">Dipl.-Med. Christiane Förster</span>
+                </div>
+            </a>
+
+            <!-- Desktop Nav -->
+            <nav class="hidden lg:flex items-center gap-7 text-sm font-medium text-slate-600 dark:text-slate-300">
+                <a href="#triage" class="hover:text-medical-600 dark:hover:text-medical-400 transition flex items-center gap-1.5">
+                    <i data-lucide="activity" class="w-4 h-4 text-medical-600"></i> Symptom-Check
+                </a>
+                <a href="#leistungen" class="hover:text-medical-600 dark:hover:text-medical-400 transition">Leistungen</a>
+                <a href="#online-services" class="hover:text-medical-600 dark:hover:text-medical-400 transition">E-Rezept & Überweisung</a>
+                <a href="#sprechzeiten" class="hover:text-medical-600 dark:hover:text-medical-400 transition">Sprechzeiten</a>
+                <a href="#anfahrt" class="hover:text-medical-600 dark:hover:text-medical-400 transition">Löbtau / Anfahrt</a>
+            </nav>
+
+            <!-- CTA Buttons -->
+            <div class="hidden sm:flex items-center gap-3">
+                <button onclick="openMyBookingsModal()" class="relative px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-medium transition flex items-center gap-2" title="Gespeicherte Termine & Anfragen">
+                    <i data-lucide="calendar-check" class="w-4 h-4 text-medical-600"></i>
+                    <span class="hidden xl:inline">Meine Anfragen</span>
+                    <span id="saved-counter" class="px-1.5 py-0.2 text-xs rounded-full bg-medical-100 dark:bg-medical-900 text-medical-800 dark:text-medical-200 font-bold">0</span>
+                </button>
+                <a href="#termin-buchen" class="bg-medical-600 hover:bg-medical-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-md shadow-medical-600/20 transition flex items-center gap-2 text-sm">
+                    <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                    <span>Termin online buchen</span>
+                </a>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button onclick="toggleMobileMenu()" class="lg:hidden p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Menu Drawer -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-3 pb-6 space-y-3">
+            <a href="#triage" onclick="toggleMobileMenu()" class="block py-2 font-medium text-slate-700 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800">Akut-Symptom-Check</a>
+            <a href="#termin-buchen" onclick="toggleMobileMenu()" class="block py-2 font-medium text-slate-700 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800">Online-Terminbuchung</a>
+            <a href="#online-services" onclick="toggleMobileMenu()" class="block py-2 font-medium text-slate-700 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800">E-Rezept & Überweisung</a>
+            <a href="#leistungen" onclick="toggleMobileMenu()" class="block py-2 font-medium text-slate-700 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800">Leistungsspektrum</a>
+            <a href="#sprechzeiten" onclick="toggleMobileMenu()" class="block py-2 font-medium text-slate-700 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800">Sprechzeiten</a>
+            <a href="#anfahrt" onclick="toggleMobileMenu()" class="block py-2 font-medium text-slate-700 dark:text-slate-200">Anfahrt Kesselsdorfer Str. 33</a>
+            <div class="pt-2 flex gap-2">
+                <button onclick="openMyBookingsModal(); toggleMobileMenu();" class="w-1/2 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-sm font-semibold">Meine Anfragen</button>
+                <a href="#termin-buchen" onclick="toggleMobileMenu()" class="w-1/2 py-2.5 rounded-xl bg-medical-600 text-white text-center text-sm font-semibold">Termin buchen</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- AKTUELLER PRAXIS-HINWEIS BANNER (Dynamisch schließbar) -->
+    <div id="seasonal-banner" class="bg-amber-50 dark:bg-amber-950/50 border-b border-amber-200 dark:border-amber-800/60 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3 text-xs sm:text-sm text-amber-900 dark:text-amber-200">
+                <span class="p-1.5 rounded-lg bg-amber-200/70 dark:bg-amber-800 text-amber-900 dark:text-amber-100 shrink-0">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                </span>
+                <p>
+                    <strong>Aktueller Hinweis (Herbst/Winter-Saison):</strong> Grippe- und COVID-19-Auffrischungsimpfungen sind ab sofort ohne lange Wartezeit möglich. Bei fieberhaften Infekten nutzen Sie bitte unsere tägliche <strong>Akutsprechstunde (08:00 – 09:00 Uhr)</strong>.
+                </p>
+            </div>
+            <button onclick="document.getElementById('seasonal-banner').remove()" class="text-amber-700 dark:text-amber-300 hover:bg-amber-200/50 p-1 rounded-lg transition" aria-label="Hinweis schließen">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- HERO SECTION -->
+    <section class="relative overflow-hidden py-12 sm:py-20 bg-gradient-to-b from-medical-50/70 via-white to-slate-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-950">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+                
+                <!-- Left Column: Intro & Quick Actions -->
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-medical-100 dark:bg-medical-900/60 text-medical-800 dark:text-medical-300 text-xs font-semibold tracking-wide">
+                        <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                        <span>Kesselsdorfer Straße 33 · 01159 Dresden (Löbtau)</span>
+                    </div>
+
+                    <h1 class="font-display text-3xl sm:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-[1.15]">
+                        Persönliche Hausarztmedizin in Dresden-Löbtau – <span class="text-medical-600 dark:text-medical-400">jetzt digital vernetzt.</span>
+                    </h1>
+
+                    <p class="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
+                        Willkommen in der Praxis von <strong>Dipl.-Med. Christiane Förster</strong> (Fachärztin für Allgemeinmedizin). Wir verbinden vertrauensvolle, wohnortnahe Betreuung mit modernen digitalen Services: Bestellen Sie Ihr E-Rezept auf Ihre Gesundheitskarte oder buchen Sie Ihren Termin direkt online.
+                    </p>
+
+                    <!-- Action Grid -->
+                    <div class="grid sm:grid-cols-3 gap-3.5 pt-2">
+                        <a href="#termin-buchen" class="group p-4 rounded-2xl bg-medical-600 hover:bg-medical-700 text-white shadow-lg shadow-medical-600/20 transition flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-3">
+                                <i data-lucide="calendar-clock" class="w-6 h-6"></i>
+                                <i data-lucide="arrow-up-right" class="w-4 h-4 opacity-70 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm">Termin buchen</div>
+                                <div class="text-xs text-medical-100">Vorsorge, Labor & Gespräch</div>
+                            </div>
+                        </a>
+
+                        <a href="#online-services" onclick="switchServiceTab('erezept')" class="group p-4 rounded-2xl bg-white dark:bg-slate-900 hover:border-medical-500 border border-slate-200 dark:border-slate-800 shadow-sm transition flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="p-2 rounded-lg bg-medical-50 dark:bg-medical-950 text-medical-600 dark:text-medical-400">
+                                    <i data-lucide="pill" class="w-5 h-5"></i>
+                                </div>
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">eGK-Direkt</span>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-slate-900 dark:text-white">E-Rezept bestellen</div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400">Abholung in jeder Apotheke</div>
+                            </div>
+                        </a>
+
+                        <a href="#triage" class="group p-4 rounded-2xl bg-white dark:bg-slate-900 hover:border-medical-500 border border-slate-200 dark:border-slate-800 shadow-sm transition flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="p-2 rounded-lg bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400">
+                                    <i data-lucide="thermometer" class="w-5 h-5"></i>
+                                </div>
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">Akut-Hilfe</span>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-slate-900 dark:text-white">Akut-Symptom-Check</div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400">Infekt oder regulärer Termin?</div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <!-- Praxis Eckdaten -->
+                    <div class="pt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-slate-200 dark:border-slate-800 text-xs sm:text-sm">
+                        <div>
+                            <span class="text-slate-400 block">Telefon</span>
+                            <a href="tel:+493514116315" class="font-semibold text-slate-800 dark:text-slate-200 hover:text-medical-600">0351 / 411 63 15</a>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block">Haltestelle (150m)</span>
+                            <span class="font-semibold text-slate-800 dark:text-slate-200">Tharandter Straße</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block">Kassen</span>
+                            <span class="font-semibold text-slate-800 dark:text-slate-200">Alle Kassen & Privat</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block">Akutsprechstunde</span>
+                            <span class="font-semibold text-medical-700 dark:text-medical-400">Mo–Fr 08:00–09:00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Live Praxis-Monitor Card -->
+                <div class="lg:col-span-5">
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl p-6 sm:p-7 space-y-6 relative">
+                        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                            <div>
+                                <span class="text-xs uppercase font-bold tracking-wider text-slate-400">Echtzeit-Übersicht</span>
+                                <h2 class="font-display font-bold text-xl text-slate-900 dark:text-white">Praxis-Monitor heute</h2>
+                            </div>
+                            <div class="w-10 h-10 rounded-full bg-medical-50 dark:bg-medical-950 flex items-center justify-center text-medical-600 dark:text-medical-400">
+                                <i data-lucide="clock" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+
+                        <!-- Dynamic Status Box -->
+                        <div id="hero-status-card" class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/70">
+                            <div class="flex items-center justify-between">
+                                <span id="hero-status-badge" class="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-200 dark:bg-emerald-800 text-emerald-900 dark:text-emerald-100">Geöffnet</span>
+                                <span id="hero-wait-estimate" class="text-xs font-medium text-emerald-800 dark:text-emerald-300">Geschätzte Wartezeit: ~15 Min.</span>
+                            </div>
+                            <p id="hero-status-desc" class="mt-2 font-semibold text-sm text-slate-800 dark:text-slate-100">
+                                Reguläre Sprechstunde läuft. Bitte halten Sie beim Empfang Ihre elektronische Gesundheitskarte (eGK) bereit.
+                            </p>
+                        </div>
+
+                        <!-- Tagesablauf Timeline -->
+                        <div class="space-y-3">
+                            <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Heutige Zeitfenster</div>
+                            <div id="today-schedule-list" class="space-y-2 text-sm">
+                                <!-- Filled dynamically by JS -->
+                            </div>
+                        </div>
+
+                        <!-- eGK Reminder Box -->
+                        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 flex items-start gap-3 text-xs text-slate-600 dark:text-slate-300">
+                            <i data-lucide="credit-card" class="w-5 h-5 text-medical-600 shrink-0 mt-0.5"></i>
+                            <div>
+                                <strong class="text-slate-900 dark:text-white block">Quartalsbeginn & E-Rezept Info:</strong>
+                                Für das Ausstellen eines E-Rezepts muss Ihre Versichertenkarte im aktuellen Quartal einmalig in der Praxis eingelesen worden sein.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+0 text-left flex items-center justify-between transition";
+                pkvBtn.className = "p-4 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-left flex items-center justify-between hover:border-med-400 transition";
+                gkvBtn.querySelector('i').setAttribute('data-lucide', 'check-circle');
+                gkvBtn.querySelector('i').className = "w-5 h-5 text-med-600";
+                pkvBtn.querySelector('i').setAttribute('data-lucide', 'circle');
+                pkvBtn.querySelector('i').className = "w-5 h-5 text-slate-300";
+            } else {
+                pkvBtn.className = "p-4 rounded-2xl border-2 border-med-600 bg-med-50/60 dark:bg-med-950/40 text-left flex items-center justify-between transition";
+                gkvBtn.className = "p-4 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-left flex items-center justify-between hover:border-med-400 transition";
+                pkvBtn.querySelector('i').setAttribute('data-lucide', 'check-circle');
+                pkvBtn.querySelector('i').className = "w-5 h-5 text-med-600";
+                gkvBtn.querySelector('i').setAttribute('data-lucide', 'circle');
+                gkvBtn.querySelector('i').className = "w-5 h-5 text-slate-300";
+            }
+            lucide.createIcons();
+        }
+
+        function selectVisitReason(reasonId) {
+            const found = visitReasons.find(r => r.id === reasonId);
+            if (!found) return;
+            bookingState.reason = found;
+
+            visitReasons.forEach(r => {
+                const card = document.getElementById(`reasonCard-${r.id}`);
+                if (!card) return;
+                if (r.id === reasonId) {
+                    card.className = "p-4 rounded-2xl border-2 text-left transition flex items-start gap-3.5 border-med-600 bg-med-50/60 dark:bg-med-950/40";
+                } else {
+                    card.className = "p-4 rounded-2xl border-2 text-left transition flex items-start gap-3.5 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-med-400";
+                }
+            });
+        }
+
+        function generateNextAvailableDays() {
+            const days = [];
+            const weekdayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+            const monthNames = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+            let cursor = new Date();
+
+            while (days.length < 5) {
+                cursor.setDate(cursor.getDate() + 1);
+                const wDay = cursor.getDay();
+                if (wDay >= 1 && wDay <= 5) {
+                    const iso = cursor.toISOString().split('T')[0];
+                    const label = `${weekdayNames[wDay]}, ${cursor.getDate()}. ${monthNames[cursor.getMonth()]}`;
+                    days.push({ iso, label, wDay });
+                }
+            }
+
+            bookingState.availableDays = days;
+            bookingState.selectedDateISO = days[0].iso;
+            bookingState.selectedDateStr = days[0].label;
+
+            renderDaySelector();
+            renderTimeSlotsForDay(days[0].wDay);
+        }
+
+        function renderDaySelector() {
+            const container = document.getElementById('daySelectorGrid');
+            container.innerHTML = bookingState.availableDays.map(d => {
+                const active = d.iso === bookingState.selectedDateISO;
+                return `
+                    <button type="button" onclick="selectBookingDay('${d.iso}', '${d.label}', ${d.wDay})"
+                        class="p-3 rounded-xl border-2 text-center transition ${active ? 'border-med-600 bg-med-600 text-white font-bold shadow-sm' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-med-400 text-slate-700 dark:text-slate-200'}">
+                        <span class="block text-xs opacity-80">${d.label.split(',')[0]}</span>
+                        <span class="block text-sm font-bold mt-0.5">${d.label.split(',')[1]}</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function selectBookingDay(iso, label, wDay) {
+            bookingState.selectedDateISO = iso;
+            bookingState.selectedDateStr = label;
+            renderDaySelector();
+            renderTimeSlotsForDay(wDay);
+        }
+
+        function renderTimeSlotsForDay(wDay) {
+            let slots = ['08:15', '08:45', '09:15', '10:00', '10:45', '11:30'];
+            if (wDay === 1 || wDay === 2) {
+                slots = slots.concat(['15:15', '16:00', '16:45', '17:15']);
+            } else if (wDay === 4) {
+                slots = ['08:15', '08:45', '09:15', '15:15', '15:45', '16:30', '17:15'];
+            }
+
+            if (!slots.includes(bookingState.selectedTime)) {
+                bookingState.selectedTime = slots[0];
+            }
+
+            const grid = document.getElementById('timeSlotGrid');
+            grid.innerHTML = slots.map(time => {
+                const active = time === bookingState.selectedTime;
+                return `
+                    <button type="button" onclick="selectBookingTime('${time}')"
+                        class="py-2.5 px-3 rounded-xl border text-sm font-bold transition ${active ? 'bg-med-600 text-white border-med-600 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-med-500 text-slate-700 dark:text-slate-200'}">
+                        ${time} Uhr
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function selectBookingTime(time) {
+            bookingState.selectedTime = time;
+            const currentDayObj = bookingState.availableDays.find(d => d.iso === bookingState.selectedDateISO);
+            renderTimeSlotsForDay(currentDayObj ? currentDayObj.wDay : 1);
+        }
+
+        function goToBookingStep(stepNumber) {
+            [1, 2, 3, 4].forEach(s => {
+                document.getElementById(`bookingStep-${s}`).classList.add('hidden');
+                const label = document.getElementById(`stepLabel-${s}`);
+                if (s <= stepNumber) {
+                    label.className = "text-med-600 dark:text-med-400 flex items-center gap-1.5";
+                    label.querySelector('span').className = "w-6 h-6 rounded-full bg-med-600 text-white flex items-center justify-center text-xs";
+                } else {
+                    label.className = "text-slate-400 flex items-center gap-1.5";
+                    label.querySelector('span').className = "w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs";
+                }
+            });
+
+            document.getElementById(`bookingStep-${stepNumber}`).classList.remove('hidden');
+            document.getElementById('bookingProgressBar').style.width = `${stepNumber * 25}%`;
+
+            if (stepNumber === 2) {
+                document.getElementById('selectedReasonSummary').textContent = `${bookingState.reason.title} (${bookingState.reason.duration}) • ${bookingState.insurance}`;
+            } else if (stepNumber === 3) {
+                document.getElementById('step3SummaryText').textContent = `${bookingState.selectedDateStr} um ${bookingState.selectedTime} Uhr — ${bookingState.reason.title}`;
+            }
+        }
+
+        function submitAppointmentBooking() {
+            const firstName = document.getElementById('patFirstName').value.trim();
+            const lastName = document.getElementById('patLastName').value.trim();
+            const dob = document.getElementById('patDob').value;
+            const phone = document.getElementById('patPhone').value.trim();
+            const status = document.getElementById('patStatus').value;
+            const errorMsg = document.getElementById('bookingErrorMsg');
+
+            if (!firstName || !lastName || !dob || !phone) {
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+            errorMsg.classList.add('hidden');
+
+            document.getElementById('confPatientName').textContent = `${firstName} ${lastName}`;
+            document.getElementById('confReceiptCard').innerHTML = `
+                <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <span class="text-slate-500">Datum & Uhrzeit:</span>
+                    <strong class="text-med-600 dark:text-med-400">${bookingState.selectedDateStr}, ${bookingState.selectedTime} Uhr</strong>
+                </div>
+                <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <span class="text-slate-500">Behandlungsanlass:</span>
+                    <strong>${bookingState.reason.title}</strong>
+                </div>
+                <div class="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <span class="text-slate-500">Patientenstatus:</span>
+                    <strong>${status} (${bookingState.insurance})</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Praxisadresse:</span>
+                    <strong>Kesselsdorfer Str. 2, 01159 Dresden</strong>
+                </div>
+            `;
+
+            goToBookingStep(4);
+            lucide.createIcons();
+        }
+
+        function resetBookingWizard() {
+            document.getElementById('patFirstName').value = '';
+            document.getElementById('patLastName').value = '';
+            document.getElementById('patNotes').value = '';
+            goToBookingStep(1);
+        }
+
+        function downloadICS() {
+            const dateParts = bookingState.selectedDateISO.split('-');
+            const timeParts = bookingState.selectedTime.split(':');
+            const startDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], timeParts[0], timeParts[1]);
+            const endDate = new Date(startDate.getTime() + 20 * 60000);
+
+            const formatICSDate = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+            const icsContent = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Praxis Dr. med. Carola Maiwald//DE',
+                'BEGIN:VEVENT',
+                `DTSTART:${formatICSDate(startDate)}`,
+                `DTEND:${formatICSDate(endDate)}`,
+                `SUMMARY:Arzttermin Dr. med. Carola Maiwald (${bookingState.reason.title})`,
+                'LOCATION:Kesselsdorfer Str. 2\\, 01159 Dresden',
+                'DESCRIPTION:Bitte elektronische Gesundheitskarte (eGK) und ggf. Impfpass/Medikamentenplan mitbringen. Tel: 0351 4214295',
+                'END:VEVENT',
+                'END:VCALENDAR'
+            ].join('\r\n');
+
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Termin-Dr-Maiwald-${bookingState.selectedDateISO}.ics`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // =========================================================================
+        // 3. E-REZEPT & ÜBERWEISUNG (DIGITAL RECEPTION TABS)
+        // =========================================================================
+        let rxList = [
+            { name: 'L-Thyroxin Henning 75 µg', dosage: 'N3 (100 Tabletten)' }
+        ];
+
+        function switchReceptionTab(tabName) {
+            ['termin', 'rezept', 'ueberweisung'].forEach(t => {
+                const panel = document.getElementById(`receptionPanel-${t}`);
+                const btn = document.getElementById(`tabBtn-${t}`);
+                if (t === tabName) {
+                    panel.classList.remove('hidden');
+                    btn.className = "reception-tab-btn px-6 py-3.5 rounded-2xl font-bold text-sm flex items-center gap-2.5 bg-med-600 text-white shadow-lg shadow-med-600/25 transition";
+                } else {
+                    panel.classList.add('hidden');
+                    btn.className = "reception-tab-btn px-6 py-3.5 rounded-2xl font-bold text-sm flex items-center gap-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition";
+                }
+            });
+        }
+
+        function scrollToBooking(tabName) {
+            switchReceptionTab(tabName);
+            document.getElementById('digital-services').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderRxList() {
+            const listEl = document.getElementById('rxMedList');
+            const badgeEl = document.getElementById('rxCountBadge');
+            badgeEl.textContent = `${rxList.length} ${rxList.length === 1 ? 'Präparat' : 'Präparate'}`;
+
+            if (rxList.length === 0) {
+                listEl.innerHTML = `<li class="text-xs text-slate-400 italic py-4 text-center">Noch kein Medikament auf der Bestellliste.</li>`;
+                return;
+            }
+
+            listEl.innerHTML = rxList.map((item, idx) => `
+                <li class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700 flex items-center justify-between gap-2 text-xs sm:text-sm">
+                    <div>
+                        <strong class="block text-slate-900 dark:text-white">${item.name}</strong>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">${item.dosage}</span>
+                    </div>
+                    <button type="button" onclick="removeMedication(${idx})" class="p-1.5 text-slate-400 hover:text-rose-500 transition" title="Entfernen">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </li>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function addMedicationToList() {
+            const nameInput = document.getElementById('medNameInput');
+            const dosageInput = document.getElementById('medDosageInput');
+            const name = nameInput.value.trim();
+            const dosage = dosageInput.value.trim() || 'Standardpackung (N2/N3)';
+
+            if (!name) return;
+            rxList.push({ name, dosage });
+            nameInput.value = '';
+            dosageInput.value = '';
+            renderRxList();
+        }
+
+        function quickAddMed(name, dosage) {
+            rxList.push({ name, dosage });
+            renderRxList();
+        }
+
+        function removeMedication(index) {
+            rxList.splice(index, 1);
+            renderRxList();
+        }
+
+        function submitPrescriptionOrder() {
+            const name = document.getElementById('rxPatientName').value.trim();
+            const dob = document.getElementById('rxPatientDob').value;
+            const delivery = document.getElementById('rxDeliveryMethod').value;
+            const banner = document.getElementById('rxSuccessBanner');
+
+            if (!name || !dob || rxList.length === 0) {
+                banner.className = "p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 text-rose-700 dark:text-rose-200 text-xs font-semibold";
+                banner.textContent = "Bitte geben Sie Ihren Namen, Ihr Geburtsdatum und mindestens ein Medikament an.";
+                banner.classList.remove('hidden');
+                return;
+            }
+
+            banner.className = "p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 text-emerald-800 dark:text-emerald-200 text-xs font-semibold";
+            banner.innerHTML = `✓ E-Rezept-Anforderung für <strong>${name}</strong> (${rxList.length} Präparat/e per ${delivery}) wurde erfolgreich an das Praxisteam Dr. Maiwald übermittelt.`;
+            banner.classList.remove('hidden');
+        }
+
+        function submitReferralOrder() {
+            const name = document.getElementById('refName').value.trim();
+            const specialty = document.getElementById('refSpecialty').value;
+            const reason = document.getElementById('refReason').value.trim();
+            const banner = document.getElementById('refSuccessBanner');
+
+            if (!name || !reason) {
+                banner.className = "p-4 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 text-rose-700 dark:text-rose-200 text-xs font-semibold";
+                banner.textContent = "Bitte füllen Sie Ihren Namen und den Überweisungsgrund aus.";
+                banner.classList.remove('hidden');
+                return;
+            }
+
+            banner.className = "p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 text-emerald-800 dark:text-emerald-200 text-xs sm:text-sm font-semibold";
+            banner.innerHTML = `✓ Ihre Überweisung für <strong>${specialty}</strong> (${reason}) wird vorbereitet und liegt ab dem nächsten Werktag gegen Vorlage Ihrer Gesundheitskarte an der Anmeldung bereit.`;
+            banner.classList.remove('hidden');
+        }
+
+        // =========================================================================
+        // 4. FILTERABLE SERVICES & NATUROPATHY PORTFOLIO
+        // =========================================================================
+        const medicalServices = [
+            {
+                id: 'hausarzt-1',
+                category: 'hausarzt',
+                badge: 'Allgemeinmedizin',
+                title: 'Hausärztliche Grund- & Akutversorgung',
+                icon: 'stethoscope',
+                shortDesc: 'Umfassende Diagnostik und Behandlung akuter sowie chronischer Erkrankungen für Jugendliche und Erwachsene.',
+                fullDesc: 'Als Ihre primäre Anlaufstelle in Dresden-Cotta/Löbtau koordinieren wir alle diagnostischen Schritte, behandeln akute Atemwegs-, Magen-Darm- oder Schmerzerkrankungen und vernetzen Sie bei Bedarf gezielt mit Fachärzten.',
+                coverage: '100 % Gesetzliche & Private Krankenkassen',
+                duration: 'Akut- oder Regulärtermin (10–15 Min.)'
+            },
+            {
+                id: 'natur-1',
+                category: 'natur',
+                badge: 'Naturheilverfahren',
+                title: 'Klassische Naturheilkunde & Phytotherapie',
+                icon: 'sprout',
+                shortDesc: 'Zertifizierte Zusatzweiterbildung: Pflanzliche Arzneimittel und sanfte Reiztherapien als Ergänzung zur Schulmedizin.',
+                fullDesc: 'Frau Dr. med. Carola Maiwald verfügt über die Zusatzbezeichnung Naturheilverfahren. Wir setzen evidenzbasierte Phytotherapie (Pflanzenheilkunde), Immunmodulation und naturheilkundliche Regulationsverfahren gezielt und mit Augenmaß ein.',
+                coverage: 'Beratung über Kasse / Spezialpräparate teils Selbstzahler',
+                duration: 'Naturheilkundliche Sprechstunde (25 Min.)'
+            },
+            {
+                id: 'psycho-1',
+                category: 'psycho',
+                badge: 'Psychosomatik',
+                title: 'Psychosomatische Grundversorgung',
+                icon: 'heart-handshake',
+                shortDesc: 'Vertrauensvolle ärztliche Gespräche bei Stressfolgeerkrankungen, Erschöpfung, Schlafstörungen und Lebenskrisen.',
+                fullDesc: 'Körperliche Symptome wie Herzrasen, chronische Schmerzen oder Magenbeschwerden haben häufig seelische Begleitursachen. In geschützter Atmosphäre klären wir organische Ursachen ab und bieten entlastende Gesprächsmöglichkeiten.',
+                coverage: '100 % Gesetzliche & Private Krankenkassen',
+                duration: 'Gesprächstermin (25 Min.)'
+            },
+            {
+                id: 'vorsorge-1',
+                category: 'vorsorge',
+                badge: 'Prävention',
+                title: 'Gesundheits-Check-up 35+ & Krebsvorsorge',
+                icon: 'shield-check',
+                shortDesc: 'Früherkennung von Herz-Kreislauf-, Nieren- und Stoffwechselerkrankungen inkl. großem Laborprofil und Ruhe-EKG.',
+                fullDesc: 'Einmalig zwischen 18 und 34 Jahren sowie alle 3 Jahre ab dem 35. Lebensjahr überprüfen wir Ihren kompletten Gesundheitsstatus (Blutwerte, Blutzucker, Cholesterin, Urinstatus, Blutdruck, Impfpass-Check und körperliche Untersuchung).',
+                coverage: '100 % Gesetzliche & Private Krankenkassen',
+                duration: 'Vorsorgetermin vormittags nüchtern (30 Min.)'
+            },
+            {
+                id: 'hausarzt-2',
+                category: 'hausarzt',
+                badge: 'Chroniker-Programme',
+                title: 'DMP-Betreuung (Diabetes, KHK, Asthma, COPD)',
+                icon: 'activity',
+                shortDesc: 'Strukturierte Quartalskontrollen, Therapieoptimierung und Schulungsberatung bei chronischen Vorerkrankungen.',
+                fullDesc: 'Im Rahmen der Disease-Management-Programme (DMP) überwachen wir engmaschig Ihre Labor- und Organwerte bei Diabetes mellitus Typ 2, Koronarer Herzkrankheit (KHK), Asthma bronchiale und COPD.',
+                coverage: '100 % Gesetzliche Krankenkassen (DMP)',
+                duration: 'Quartals-Kontrolltermin (15 Min.)'
+            },
+            {
+                id: 'vorsorge-2',
+                category: 'vorsorge',
+                badge: 'Impfungen & Labor',
+                title: 'Impfberatung, EKG & Labordiagnostik',
+                icon: 'syringe',
+                shortDesc: 'Alle STIKO-Schutzimpfungen, Ruhe-EKG, Langzeit-Blutdruckmessung sowie tägliche Blutentnahmen (ab 08:00 Uhr).',
+                fullDesc: 'Wir prüfen Ihren Impfausweis auf Lücken (FSME für Sachsen, Tetanus/Diphtherie/Pertussis, Gürtelrose/Herpes Zoster ab 60, Grippe & Pneumokokken) und führen vor Ort EKG- sowie Laboruntersuchungen durch.',
+                coverage: 'Alle Kassen (Reiseimpfungen je nach Krankenkasse)',
+                duration: 'Kurztermin / Labortermin (10 Min.)'
+            }
+        ];
+
+        function renderServices(filter = 'alle') {
+            const grid = document.getElementById('servicesGrid');
+            const filtered = filter === 'alle' ? medicalServices : medicalServices.filter(s => s.category === filter);
+
+            grid.innerHTML = filtered.map(s => `
+                <div class="group bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-xl hover:border-med-500 transition flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="w-12 h-12 rounded-2xl bg-med-50 dark:bg-med-950 text-med-600 dark:text-med-400 flex items-center justify-center group-hover:scale-110 transition">
+                                <i data-lucide="${s.icon}" class="w-6 h-6"></i>
+                            </div>
+                            <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">${s.badge}</span>
+                        </div>
+                        <h3 class="font-serif font-bold text-xl text-slate-900 dark:text-white">${s.title}</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">${s.shortDesc}</p>
+                    </div>
+                    <div class="pt-5 mt-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <button onclick="openServiceDetail('${s.id}')" class="text-xs sm:text-sm font-bold text-med-600 dark:text-med-400 hover:underline flex items-center gap-1">
+                            <span>Details & Ablauf</span>
+                            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="scrollToBooking('termin')" class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-med-600 hover:text-white transition">
+                            Termin wählen
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function filterServices(cat) {
+            document.querySelectorAll('.service-filter-btn').forEach(btn => {
+                if (btn.getAttribute('data-filter') === cat) {
+                    btn.className = "service-filter-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-med-600 text-white shadow-sm transition";
+                } else {
+                    btn.className = "service-filter-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-med-500 transition";
+                }
+            });
+            renderServices(cat);
+        }
+
+        function openServiceDetail(serviceId) {
+            const s = medicalServices.find(item => item.id === serviceId);
+            if (!s) return;
+            document.getElementById('modalServiceBadge').textContent = s.badge;
+            document.getElementById('modalServiceTitle').textContent = s.title;
+            document.getElementById('modalServiceDesc').textContent = s.fullDesc;
+            document.getElementById('modalServiceCoverage').textContent = s.coverage;
+            document.getElementById('modalServiceDuration').textContent = s.duration;
+            openModal('serviceDetailModal');
+        }
+
+        // =========================================================================
+        // 5. INTERACTIVE SYMPTOM & TRIAGE LOTSE
+        // =========================================================================
+        function renderTriageStart() {
+            const box = document.getElementById('triageContent');
+            box.innerHTML = `
+                <div class="space-y-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-med-600 dark:text-med-400">Schritt 1 von 2: Hauptbeschwerde wählen</span>
+                    <h3 class="font-bold text-lg">Welche Beschwerden stehen aktuell im Vordergrund?</h3>
+                    <div class="grid sm:grid-cols-2 gap-2.5 pt-1">
+                        <button onclick="evaluateTriage('emergency')" class="p-3.5 rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50/60 dark:bg-rose-950/40 hover:border-rose-500 text-left transition flex items-start gap-3">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600 shrink-0 mt-0.5"></i>
+                            <div>
+                                <strong class="block text-xs sm:text-sm text-rose-950 dark:text-rose-200">Brustschmerz, Atemnot, Lähmung</strong>
+                                <span class="text-[11px] text-rose-700 dark:text-rose-300">Plötzlicher Druck im Brustkorb, Sprachstörung</span>
+                            </div>
+                        </button>
+                        <button onclick="evaluateTriage('infection')" class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-med-500 text-left transition flex items-start gap-3">
+                            <i data-lucide="thermometer" class="w-5 h-5 text-amber-500 shrink-0 mt-0.5"></i>
+                            <div>
+                                <strong class="block text-xs sm:text-sm">Fieber, Husten, akuter Infekt</strong>
+                                <span class="text-[11px] text-slate-500 dark:text-slate-400">Halsschmerzen, Gliederschmerzen, Krankschreibung</span>
+                            </div>
+                        </button>
+                        <button onclick="evaluateTriage('subacute')" class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-med-500 text-left transition flex items-start gap-3">
+                            <i data-lucide="activity" class="w-5 h-5 text-med-600 shrink-0 mt-0.5"></i>
+                            <div>
+                                <strong class="block text-xs sm:text-sm">Rückenschmerz, Magen, Gelenke</strong>
+                                <span class="text-[11px] text-slate-500 dark:text-slate-400">Seit einigen Tagen bestehende Beschwerden</span>
+                            </div>
+                        </button>
+                        <button onclick="evaluateTriage('routine')" class="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-med-500 text-left transition flex items-start gap-3">
+                            <i data-lucide="sprout" class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5"></i>
+                            <div>
+                                <strong class="block text-xs sm:text-sm">Vorsorge, Naturheilkunde & Labor</strong>
+                                <span class="text-[11px] text-slate-500 dark:text-slate-400">Check-up, Impfung, Befund- oder Naturheilgespräch</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function evaluateTriage(type) {
+            const box = document.getElementById('triageContent');
+            if (type === 'emergency') {
+                box.innerHTML = `
+                    <div class="p-5 rounded-2xl bg-rose-50 dark:bg-rose-950/70 border-2 border-rose-500 space-y-3">
+                        <div class="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-extrabold text-base">
+                            <i data-lucide="siren" class="w-6 h-6"></i>
+                            <span>Empfehlung: Sofortiger Notruf (112)</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-rose-900 dark:text-rose-200">
+                            Bei akuten Brustschmerzen, schwerer Atemnot oder neurologischen Ausfällen (Verdacht auf Herzinfarkt oder Schlaganfall) zählt jede Minute. Bitte fahren Sie nicht selbst in die Praxis, sondern alarmieren Sie den Rettungsdienst.
+                        </p>
+                        <div class="flex flex-wrap gap-2 pt-2">
+                            <a href="tel:112" class="px-4 py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs sm:text-sm">Notruf 112 wählen</a>
+                            <button onclick="renderTriageStart()" class="px-4 py-2.5 rounded-xl border border-rose-300 text-xs sm:text-sm font-semibold">Zurück zur Auswahl</button>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'infection') {
+                box.innerHTML = `
+                    <div class="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 space-y-3">
+                        <div class="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-bold text-base">
+                            <i data-lucide="clock" class="w-5 h-5"></i>
+                            <span>Empfehlung: Vormittags-Akutsprechstunde (ab 08:00 Uhr)</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-200">
+                            Für fieberhafte Infekte und akute Krankschreibungen (eAU) halten wir täglich ab 08:00 Uhr Zeitfenster frei. Bitte melden Sie sich kurz telefonisch unter <strong>0351 4214295</strong> an oder wählen Sie einen Akut-Termin.
+                        </p>
+                        <div class="flex flex-wrap gap-2 pt-2">
+                            <button onclick="selectVisitReason('akut'); scrollToBooking('termin');" class="px-4 py-2.5 rounded-xl bg-med-600 text-white font-bold text-xs sm:text-sm">Akut-Termin auswählen</button>
+                            <button onclick="renderTriageStart()" class="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs sm:text-sm font-semibold">Neu starten</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                box.innerHTML = `
+                    <div class="p-5 rounded-2xl bg-med-50 dark:bg-med-950/60 border border-med-200 dark:border-med-800 space-y-3">
+                        <div class="flex items-center gap-2 text-med-700 dark:text-med-300 font-bold text-base">
+                            <i data-lucide="calendar-check" class="w-5 h-5"></i>
+                            <span>Empfehlung: Regulärer Sprechstundentermin</span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-200">
+                            Für Ihr Anliegen nimmt sich Frau Dr. med. Maiwald gerne ungestört Zeit. Ideal sind unsere Vor- oder Nachmittagstermine (Mo, Di & Do auch bis 18:00 Uhr).
+                        </p>
+                        <div class="flex flex-wrap gap-2 pt-2">
+                            <button onclick="scrollToBooking('termin')" class="px-4 py-2.5 rounded-xl bg-med-600 text-white font-bold text-xs sm:text-sm">Jetzt Wunschtermin buchen</button>
+                            <button onclick="renderTriageStart()" class="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-xs sm:text-sm font-semibold">Neu starten</button>
+                        </div>
+                    </div>
+                `;
+            }
+            lucide.createIcons();
+        }
+
+        // =========================================================================
+        // 6. INTERACTIVE LEAFLET MAP (KESSELSDORFER STR. 2, 01159 DRESDEN)
+        // =========================================================================
+        function initMap() {
+            const coords = [51.0442, 13.7024]; // Kesselsdorfer Str. 2 / Tharandter Str., 01159 Dresden
+            const map = L.map('praxisMap', { scrollWheelZoom: false }).setView(coords, 16);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
+
+            const marker = L.marker(coords).addTo(map);
+            marker.bindPopup(`
+                <div style="font-family: sans-serif; padding: 2px;">
+                    <strong style="color: #0f766e; font-size: 14px;">Praxis Dr. med. Carola Maiwald</strong><br>
+                    <span style="font-size: 12px;">Fachärztin für Allgemeinmedizin<br>Kesselsdorfer Str. 2, 01159 Dresden<br>Tel.: 0351 / 4214295</span>
+                </div>
+            `).openPopup();
+        }
+
+        // =========================================================================
+        // 7. ACCESSIBILITY, DARK MODE, FAQ & MODALS
+        // =========================================================================
+        function setFontSize(px) {
+            document.documentElement.style.setProperty('--base-font-size', px + 'px');
+        }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            html.classList.toggle('dark');
+            const icon = document.getElementById('themeIcon');
+            icon.setAttribute('data-lucide', html.classList.contains('dark') ? 'sun' : 'moon');
+            lucide.createIcons();
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        }
+
+        function toggleFaq(id) {
+            const body = document.getElementById(`faqBody-${id}`);
+            const icon = document.getElementById(`faqIcon-${id}`);
+            body.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // Initialize everything on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLivePracticeStatus();
+            initBookingWizard();
+            renderRxList();
+            renderServices('alle');
+            renderTriageStart();
+            initMap();
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
